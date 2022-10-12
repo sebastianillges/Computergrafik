@@ -135,10 +135,19 @@ typedef unsigned short wchar_t;
 #endif /* _WIN32 */
 
 #define GL_SILENCE_DEPRECATION
-#include <OpenGL/gl.h>
-#include <OpenGL/glu.h>
-//#include <GL/gl.h>
-//#include <GL/glu.h>
+
+#if _WIN32
+#   include <Windows.h>
+#endif
+#if __APPLE__
+#   include <OpenGL/gl.h>
+#   include <OpenGL/glu.h>
+#   include <GLUT/glut.h>
+#else
+#   include <GL/gl.h>
+#   include <GL/glu.h>
+#   include "glut.h"
+#endif
 
 #ifdef __cplusplus
 extern "C"
