@@ -317,8 +317,9 @@ void bhamLine(Point p1, Point p2, Color c)
 			if (dy < 0) // octant 7
 			{
 				printf("7\n");
-				while (x > p2.x)
+				while (x < p2.x)
 				{
+					printf("%d\n", d);
 					if (d >= 0)
 					{
 						d += dNE;
