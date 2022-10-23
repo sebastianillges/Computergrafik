@@ -178,204 +178,203 @@ void bhamLine(Point p1, Point p2, Color c)
 
 	setPoint(Point(x, y), c); // start point
 
-	if (abs(dx) > abs(dy)) // 0 < slope < 1 (ocatants 1,4,5,8)
-	{
-		printf("1,4,5,8\n");
-		if (dx < 0) // octants 4,5
-		{
-			printf("4,5\n");
-			if (dy < 0) // octant 4
-			{
-				printf("4\n");
-				while (x > p2.x)
-				{
-					if (d >= 0)
-					{
-						d += dNE;
-						x++;
-						y--;
-					}
-					else
-					{
-						d += dE;
-						x++;
-					}
-					setPoint(Point(x, y), c);
-				}
-			}
-			else // octant 5
-			{
-				printf("5\n");
-				while (x > p2.x)
-				{
-					if (d >= 0)
-					{
-						d += dNE;
-						x--;
-						y--;
-					}
-					else
-					{
-						d += dE;
-						x--;
-					}
-					setPoint(Point(x, y), c);
-				}
-			}
-		}
-		else // octant 1,8
-		{
-			printf("1,8\n");
-			if (dy < 0) // octant 8
-			{
-				printf("8\n");
-				while (x < p2.x)
-				{
-					if (d >= 0)
-					{
-						d += dNE;
-						x++;
-						y--;
-					}
-					else
-					{
-						d += dE;
-						x++;
-					}
-					setPoint(Point(x, y), c);
-				}
-			}
-			else // octant 1
-			{
-				printf("1\n");
-				while (x < p2.x)
-				{
-					if (d >= 0)
-					{
-						d += dNE;
-						x--;
-						y--;
-					}
-					else
-					{
-						d += dE;
-						x--;
-					}
-					setPoint(Point(x, y), c);
-				}
-			}
-		}
-	}
-	else // octant 2,3,6,7
-	{
-		printf("2,3,6,7\n");
-		if (dx < 0) // octant 3,6
-		{
-			printf("3,6\n");
-			if (dy < 0) // octant 6
-			{
-				printf("6\n");
-				while (y > p2.y)
-				{
-					if (d >= 0)
-					{
-						d += dNE;
-						x--;
-						y--;
-					}
-					else
-					{
-						d += dE;
-						y--;
-					}
-					setPoint(Point(x, y), c);
-				}
-			}
-			else // octant 3
-			{
-				printf("3\n");
-				while (y < p2.y)
-				{
-					if (d >= 0)
-					{
-						d += dNE;
-						x--;
-						y++;
-					}
-					else
-					{
-						d += dE;
-						y++;
-					}
-					setPoint(Point(x, y), c);
-				}
-			}
-		}
-		else // octant 2,7
-		{
-			printf("2,7\n");
-			if (dy < 0) // octant 7
-			{
-				printf("7\n");
-				while (x < p2.x)
-				{
-					printf("%d\n", d);
-					if (d >= 0)
-					{
-						d += dNE;
-						x++;
-						y--;
-					}
-					else
-					{
-						d += dE;
-						y--;
-					}
-					setPoint(Point(x, y), c);
-				}
-			}
-			else // octant 2
-			{
-				printf("2\n");
-				while (y < p2.y)
-				{
-					if (d >= 0)
-					{
-						d += dNE;
-						x++;
-						y++;
-					}
-					else
-					{
-						d += dE;
-						y++;
-					}
-					setPoint(Point(x, y), c);
-				}
-			}
-		}
-	}
-	setPoint(p2, c); // letzter Punkt
-
 	/*
-		while (x < p2.x)
+		if (abs(dx) > abs(dy)) // 0 < slope < 1 (ocatants 1,4,5,8)
 		{
-			if (d >= 0)
+			printf("1,4,5,8\n");
+			if (dx < 0) // octants 4,5
 			{
-				d += dNE;
-				x++;
-				y++;
+				printf("4,5\n");
+				if (dy < 0) // octant 4
+				{
+					printf("4\n");
+					while (x > p2.x)
+					{
+						if (d >= 0)
+						{
+							d += dNE;
+							x++;
+							y--;
+						}
+						else
+						{
+							d += dE;
+							x++;
+						}
+						setPoint(Point(x, y), c);
+					}
+				}
+				else // octant 5
+				{
+					printf("5\n");
+					while (x > p2.x)
+					{
+						if (d >= 0)
+						{
+							d += dNE;
+							x--;
+							y--;
+						}
+						else
+						{
+							d += dE;
+							x--;
+						}
+						setPoint(Point(x, y), c);
+					}
+				}
 			}
-			else
+			else // octant 1,8
 			{
-				d += dE;
-				x++;
+				printf("1,8\n");
+				if (dy < 0) // octant 8
+				{
+					printf("8\n");
+					while (x < p2.x)
+					{
+						if (d >= 0)
+						{
+							d += dNE;
+							x++;
+							y--;
+						}
+						else
+						{
+							d += dE;
+							x++;
+						}
+						setPoint(Point(x, y), c);
+					}
+				}
+				else // octant 1
+				{
+					printf("1\n");
+					while (x < p2.x)
+					{
+						if (d >= 0)
+						{
+							d += dNE;
+							x--;
+							y--;
+						}
+						else
+						{
+							d += dE;
+							x--;
+						}
+						setPoint(Point(x, y), c);
+					}
+				}
 			}
-			setPoint(Point(x, y), c);
 		}
-
+		else // octant 2,3,6,7
+		{
+			printf("2,3,6,7\n");
+			if (dx < 0) // octant 3,6
+			{
+				printf("3,6\n");
+				if (dy < 0) // octant 6
+				{
+					printf("6\n");
+					while (y > p2.y)
+					{
+						if (d >= 0)
+						{
+							d += dNE;
+							x--;
+							y--;
+						}
+						else
+						{
+							d += dE;
+							y--;
+						}
+						setPoint(Point(x, y), c);
+					}
+				}
+				else // octant 3
+				{
+					printf("3\n");
+					while (y < p2.y)
+					{
+						if (d >= 0)
+						{
+							d += dNE;
+							x--;
+							y++;
+						}
+						else
+						{
+							d += dE;
+							y++;
+						}
+						setPoint(Point(x, y), c);
+					}
+				}
+			}
+			else // octant 2,7
+			{
+				printf("2,7\n");
+				if (dy < 0) // octant 7
+				{
+					printf("7\n");
+					while (x < p2.x)
+					{
+						printf("%d\n", d);
+						if (d >= 0)
+						{
+							d += dNE;
+							x++;
+							y--;
+						}
+						else
+						{
+							d += dE;
+							y--;
+						}
+						setPoint(Point(x, y), c);
+					}
+				}
+				else // octant 2
+				{
+					printf("2\n");
+					while (y < p2.y)
+					{
+						if (d >= 0)
+						{
+							d += dNE;
+							x++;
+							y++;
+						}
+						else
+						{
+							d += dE;
+							y++;
+						}
+						setPoint(Point(x, y), c);
+					}
+				}
+			}
+		}
 		setPoint(p2, c); // letzter Punkt
 	*/
+	while (x < p2.x)
+	{
+		if (d >= 0)
+		{
+			d += dNE;
+			x++;
+			y++;
+		}
+		else
+		{
+			d += dE;
+			x++;
+		}
+		setPoint(Point(x, y), c);
+	}
+
+	setPoint(p2, c); // letzter Punkt
 }
 
 //
