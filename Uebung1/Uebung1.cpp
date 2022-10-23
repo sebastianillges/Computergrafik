@@ -149,6 +149,36 @@ void setPoint(Point p, Color c = Color(0, 0, 0))
 	g_Buffer[3 * TO_LINEAR(x, y) + 2] = 255.0 * c.b;
 }
 
+Point flipPoint(Point p, int octant)
+{
+	switch (octant) 
+	{
+		case 2: return Point(p.y,p.x);
+		case 3: return Point(-p.y,p.x);
+		case 4:	return Point(-p.x,p.y);
+		case 5:	return Point(-p.x,-p.y);
+		case 6:	return Point(-p.y,-p.x);
+		case 7:	return Point(-p.y,p.x);
+		case 8:	return Point(p.x,-p.y);
+		default: return p;
+	}
+}
+
+Point backFlip(Point p, int octant)
+{
+	switch (octant) 
+	{
+		case 2: return Point(p.y,p.x);
+		case 3: return Point(p.y,-p.x);
+		case 4:	return Point(-p.x,p.y);
+		case 5:	return Point(-p.x,-p.y);
+		case 6:	return Point(-p.y,-p.x);
+		case 7:	return Point(p.y,-p.x);
+		case 8:	return Point(p.x,-p.y);
+		default: return p;
+	}
+}
+
 //
 // ÜBUNG 1 AUFGABE 1:
 //
@@ -162,203 +192,55 @@ void bhamLine(Point p1, Point p2, Color c)
 	setPoint(p1, c);
 
 	// ...
-	int x, y, dx, dy, d, dNE, dE;
-
+	int x, y, dx, dy, d, dNE, dE, octant;
+	octant = 1;
 	x = p1.x;
 	y = p1.y;
-
+	
 	dx = p2.x - p1.x;
 	dy = p2.y - p1.y;
+	
+	// d = 2 * dy - dx;
 
+	if (abs(dx) > abs(dy)) // 0 < slope < 1 (ocatants 1,4,5,8)
+	{
+		if (dx < 0) // octants 4,5
+		{
+			if (dy < 0) {octant = 4;} // octant 4
+			else {octant = 5;} // octant 5
+		}
+		else // octant 1,8
+		{
+			if (dy < 0) {octant = 8;} // octant 8
+			else {octant = 1;} // octant 1
+		}
+	}
+	else // octant 2,3,6,7
+	{
+		if (dx < 0) // octant 3,6
+		{
+			if (dy < 0) {octant = 6;} // octant 6
+			else {octant = 3;} // octant 3
+		}
+		else // octant 2,7
+		{
+			if (dy < 0) {octant = 7;} // octant 7
+			else {octant = 2;} // octant 2
+		}
+	}
+	// flip p2
+	Point p2flip = flipPoint(p2, octant);
+	printf("%d,%d\n", p2flip.x, p2flip.y);
+	// dX, dY, dNE, dE mit geflippten p2 berechnen
+	dx = p2flip.x - p1.x;
+	dy = p2flip.y - p1.y;
 	d = 2 * dy - dx;
-
+	// bresenham algo, vor jedem setPixel den Pixel zurückflippen
+	
 	dNE = 2 * (dy - dx);
-
 	dE = 2 * dy;
 
-	setPoint(Point(x, y), c); // start point
-
-	/*
-		if (abs(dx) > abs(dy)) // 0 < slope < 1 (ocatants 1,4,5,8)
-		{
-			printf("1,4,5,8\n");
-			if (dx < 0) // octants 4,5
-			{
-				printf("4,5\n");
-				if (dy < 0) // octant 4
-				{
-					printf("4\n");
-					while (x > p2.x)
-					{
-						if (d >= 0)
-						{
-							d += dNE;
-							x++;
-							y--;
-						}
-						else
-						{
-							d += dE;
-							x++;
-						}
-						setPoint(Point(x, y), c);
-					}
-				}
-				else // octant 5
-				{
-					printf("5\n");
-					while (x > p2.x)
-					{
-						if (d >= 0)
-						{
-							d += dNE;
-							x--;
-							y--;
-						}
-						else
-						{
-							d += dE;
-							x--;
-						}
-						setPoint(Point(x, y), c);
-					}
-				}
-			}
-			else // octant 1,8
-			{
-				printf("1,8\n");
-				if (dy < 0) // octant 8
-				{
-					printf("8\n");
-					while (x < p2.x)
-					{
-						if (d >= 0)
-						{
-							d += dNE;
-							x++;
-							y--;
-						}
-						else
-						{
-							d += dE;
-							x++;
-						}
-						setPoint(Point(x, y), c);
-					}
-				}
-				else // octant 1
-				{
-					printf("1\n");
-					while (x < p2.x)
-					{
-						if (d >= 0)
-						{
-							d += dNE;
-							x--;
-							y--;
-						}
-						else
-						{
-							d += dE;
-							x--;
-						}
-						setPoint(Point(x, y), c);
-					}
-				}
-			}
-		}
-		else // octant 2,3,6,7
-		{
-			printf("2,3,6,7\n");
-			if (dx < 0) // octant 3,6
-			{
-				printf("3,6\n");
-				if (dy < 0) // octant 6
-				{
-					printf("6\n");
-					while (y > p2.y)
-					{
-						if (d >= 0)
-						{
-							d += dNE;
-							x--;
-							y--;
-						}
-						else
-						{
-							d += dE;
-							y--;
-						}
-						setPoint(Point(x, y), c);
-					}
-				}
-				else // octant 3
-				{
-					printf("3\n");
-					while (y < p2.y)
-					{
-						if (d >= 0)
-						{
-							d += dNE;
-							x--;
-							y++;
-						}
-						else
-						{
-							d += dE;
-							y++;
-						}
-						setPoint(Point(x, y), c);
-					}
-				}
-			}
-			else // octant 2,7
-			{
-				printf("2,7\n");
-				if (dy < 0) // octant 7
-				{
-					printf("7\n");
-					while (x < p2.x)
-					{
-						printf("%d\n", d);
-						if (d >= 0)
-						{
-							d += dNE;
-							x++;
-							y--;
-						}
-						else
-						{
-							d += dE;
-							y--;
-						}
-						setPoint(Point(x, y), c);
-					}
-				}
-				else // octant 2
-				{
-					printf("2\n");
-					while (y < p2.y)
-					{
-						if (d >= 0)
-						{
-							d += dNE;
-							x++;
-							y++;
-						}
-						else
-						{
-							d += dE;
-							y++;
-						}
-						setPoint(Point(x, y), c);
-					}
-				}
-			}
-		}
-		setPoint(p2, c); // letzter Punkt
-	*/
-	while (x < p2.x)
+	while (x < p2flip.x)
 	{
 		if (d >= 0)
 		{
@@ -371,7 +253,9 @@ void bhamLine(Point p1, Point p2, Color c)
 			d += dE;
 			x++;
 		}
-		setPoint(Point(x, y), c);
+		Point p = backFlip(Point(x, y), octant);
+		printf("%d,%d\n", p.x, p.y);
+		setPoint(p, c);
 	}
 
 	setPoint(p2, c); // letzter Punkt
