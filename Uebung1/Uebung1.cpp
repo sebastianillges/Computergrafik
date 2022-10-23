@@ -149,32 +149,36 @@ void setPoint(Point p, Color c = Color(0, 0, 0))
 	g_Buffer[3 * TO_LINEAR(x, y) + 2] = 255.0 * c.b;
 }
 
-Point flipPoint(Point p, int octant)
+Point flipPoint(Point p, Point o, int octant)
 {
+	p.x -= o.x;
+	p.y -= o.y;
 	switch (octant) 
 	{
-		case 2: return Point(p.y,p.x);
-		case 3: return Point(-p.y,p.x);
-		case 4:	return Point(-p.x,p.y);
-		case 5:	return Point(-p.x,-p.y);
-		case 6:	return Point(-p.y,-p.x);
-		case 7:	return Point(-p.y,p.x);
-		case 8:	return Point(p.x,-p.y);
+		case 2: return Point(p.y+o.x,p.x+o.y);
+		case 3: return Point(-p.y+o.x,p.x+o.y);
+		case 4:	return Point(-p.x+o.x,p.y+o.y);
+		case 5:	return Point(-p.x+o.x,-p.y+o.y);
+		case 6:	return Point(-p.y+o.x,-p.x+o.y);
+		case 7:	return Point(-p.y+o.x,p.x+o.y);
+		case 8:	return Point(p.x+o.x,-p.y+o.y);
 		default: return p;
 	}
 }
 
-Point backFlip(Point p, int octant)
-{
+Point backFlip(Point p, Point o, int octant)
+{	
+	p.x -= o.x;
+	p.y -= o.y;
 	switch (octant) 
 	{
-		case 2: return Point(p.y,p.x);
-		case 3: return Point(p.y,-p.x);
-		case 4:	return Point(-p.x,p.y);
-		case 5:	return Point(-p.x,-p.y);
-		case 6:	return Point(-p.y,-p.x);
-		case 7:	return Point(p.y,-p.x);
-		case 8:	return Point(p.x,-p.y);
+		case 2: return Point(p.y+o.x,p.x+o.y);
+		case 3: return Point(p.y+o.x,-p.x+o.y);
+		case 4:	return Point(-p.x+o.x,p.y+o.y);
+		case 5:	return Point(-p.x+o.x,-p.y+o.y);
+		case 6:	return Point(-p.y+o.x,-p.x+o.y);
+		case 7:	return Point(p.y+o.x,-p.x+o.y);
+		case 8:	return Point(p.x+o.x,-p.y+o.y);
 		default: return p;
 	}
 }
@@ -202,11 +206,11 @@ void bhamLine(Point p1, Point p2, Color c)
 	
 	// d = 2 * dy - dx;
 
-	if (abs(dx) > abs(dy)) // 0 < slope < 1 (ocatants 1,4,5,8)
+	if (abs(dx) > abs(dy)) // 0 < slope < 1 (octants 1,4,5,8)
 	{
 		if (dx < 0) // octants 4,5
 		{
-			if (dy < 0) {octant = 4;} // octant 4
+			if (dy > 0) {octant = 4;} // octant 4
 			else {octant = 5;} // octant 5
 		}
 		else // octant 1,8
@@ -215,7 +219,7 @@ void bhamLine(Point p1, Point p2, Color c)
 			else {octant = 1;} // octant 1
 		}
 	}
-	else // octant 2,3,6,7
+	else // octants 2,3,6,7
 	{
 		if (dx < 0) // octant 3,6
 		{
@@ -229,7 +233,7 @@ void bhamLine(Point p1, Point p2, Color c)
 		}
 	}
 	// flip p2
-	Point p2flip = flipPoint(p2, octant);
+	Point p2flip = flipPoint(p2, p1, octant);
 	printf("%d,%d\n", p2flip.x, p2flip.y);
 	// dX, dY, dNE, dE mit geflippten p2 berechnen
 	dx = p2flip.x - p1.x;
@@ -253,7 +257,7 @@ void bhamLine(Point p1, Point p2, Color c)
 			d += dE;
 			x++;
 		}
-		Point p = backFlip(Point(x, y), octant);
+		Point p = backFlip(Point(x, y), p1, octant);
 		printf("%d,%d\n", p.x, p.y);
 		setPoint(p, c);
 	}
