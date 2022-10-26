@@ -287,7 +287,7 @@ void bhamCircle(Point p, int r, Color c)
   setPoint(Point(x + trueX, y + trueY), c);
   setPoint(Point(y + trueX, x + trueY), c);
   setPoint(Point(x + trueX, -y + trueY), c);
-  setPoint(Point(y + trueX, -x + trueY), c);
+  setPoint(Point(-y + trueX, -x + trueY), c);
 
   while (y > x)
 	{
