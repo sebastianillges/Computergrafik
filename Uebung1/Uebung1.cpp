@@ -156,13 +156,13 @@ Point flipPoint(Point p, Point o, int octant)
 	switch (octant) 
 	{
 		case 2: return Point(p.y+o.x,p.x+o.y);
-		case 3: return Point(-p.y+o.x,p.x+o.y);
+		case 3: return Point(p.y+o.x,-p.x+o.y);
 		case 4:	return Point(-p.x+o.x,p.y+o.y);
 		case 5:	return Point(-p.x+o.x,-p.y+o.y);
 		case 6:	return Point(-p.y+o.x,-p.x+o.y);
 		case 7:	return Point(-p.y+o.x,p.x+o.y);
 		case 8:	return Point(p.x+o.x,-p.y+o.y);
-		default: return p;
+		default: return Point(p.x+o.x, p.y+o.y);
 	}
 }
 
@@ -173,13 +173,13 @@ Point backFlip(Point p, Point o, int octant)
 	switch (octant) 
 	{
 		case 2: return Point(p.y+o.x,p.x+o.y);
-		case 3: return Point(p.y+o.x,-p.x+o.y);
+		case 3: return Point(-p.y+o.x,p.x+o.y);
 		case 4:	return Point(-p.x+o.x,p.y+o.y);
 		case 5:	return Point(-p.x+o.x,-p.y+o.y);
 		case 6:	return Point(-p.y+o.x,-p.x+o.y);
 		case 7:	return Point(p.y+o.x,-p.x+o.y);
 		case 8:	return Point(p.x+o.x,-p.y+o.y);
-		default: return p;
+		default: return Point(p.x+o.x, p.y+o.y);
 	}
 }
 
@@ -239,7 +239,7 @@ void bhamLine(Point p1, Point p2, Color c)
 	dx = p2flip.x - p1.x;
 	dy = p2flip.y - p1.y;
 	d = 2 * dy - dx;
-  dNE = 2 * (dy - dx);
+  	dNE = 2 * (dy - dx);
 	dE = 2 * dy;
 
 	// bresenham algo, vor jedem setPixel den Pixel zurückflippen
@@ -294,18 +294,18 @@ void bhamCircle(Point p, int r, Color c)
 		if (d >= 0)
 		{
 			dSE =  4 * (2 * (x - y) + 5);
-      d += dSE;
+      		d += dSE;
 			x++;
 			y--;
 		}
 		else
 		{
 			dE = 4 * (2 * x + 3);
-      d += dE;
+      		d += dE;
 			x++;
 		}
 
-		setPoint(Point(x + trueX, y + trueY), c);
+	setPoint(Point(x + trueX, y + trueY), c);
     setPoint(Point(y + trueX, x + trueY), c);
     setPoint(Point(-x  + trueX, y + trueY), c);
     setPoint(Point(-y + trueX, x + trueY), c);
@@ -336,11 +336,25 @@ void display(void)
 	// es sei denn Sie wollen "spielen" :-D
 	//
 
-	Point p1(-10, 20); // ersten Punkt für Gerade definieren
+	Point p1(-20, 10); // ersten Punkt für Gerade definieren
 	// Point p2(-5, 29);
-	Point p2(20, -15);		// ebenso den zweiten Punkt
+	Point p2(p1.x+30, p1.y-35);		// +30 -35 Oktant 7
+	Point p3(p1.x+35, p1.y-30);		// +35 -30 Oktant 8
+	Point p4(p1.x+30, p1.y+35);		// +30 +35 Oktant 2
+	Point p5(p1.x+35, p1.y+30);		// +35 +30 Oktant 1
+	Point p6(p1.x-30, p1.y-35);		// -30 -35 Oktant 6
+	Point p7(p1.x-35, p1.y-30);		// -35 -30 Oktant 5
+	Point p8(p1.x-30, p1.y+35);		// -30 +35 Oktant 3
+	Point p9(p1.x-35, p1.y+30);		// -35 +30 Oktant 4
 	Color cRed(1, 0, 0);	// Es soll eine rote Gerade sein ...
 	bhamLine(p1, p2, cRed); // Gerade zeichnen ...
+	bhamLine(p1, p3, cRed);
+	bhamLine(p1, p4, cRed);
+	bhamLine(p1, p5, cRed);
+	bhamLine(p1, p6, cRed);
+	bhamLine(p1, p7, cRed);
+	bhamLine(p1, p8, cRed);
+	bhamLine(p1, p9, cRed);
 
 	Point p(-3, -5);		 // Mittelpunkt für Kreis definieren
 	int r = 17;				 // Radius festlegen
