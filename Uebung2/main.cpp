@@ -1,11 +1,11 @@
-// Sample code for Übung 2
+// Sample code for ï¿½bung 2
 
 #include "vec.h"
 #include "mat.h"
 
 // might be you have to swith to
 // #include "glut.h" depending on your GLUT installation
-#include "Uebung2/Uebung2/glut.h"
+#include "glut.h"
 
 ////////////////////////////////////////////////////////////
 //
@@ -197,7 +197,7 @@ int main (int argc, char **argv)
 	// we have to use double buffer to avoid flickering
 	// TODO: lookup "double buffer", what is it for, how is it used ...
 	glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGB);
-	glutCreateWindow ("Übung 2");
+	glutCreateWindow ("ï¿½bung 2");
 
 	init ();	// init my variables first
 	initGL ();	// init the GL (i.e. view settings, ...)
@@ -207,7 +207,7 @@ int main (int argc, char **argv)
 	glutKeyboardFunc (keyboard);
 	glutDisplayFunc (display1);
 	// you might want to add a resize function analog to
-	// Übung1 using code similar to the initGL function ...
+	// ï¿½bung1 using code similar to the initGL function ...
 
 	// start main loop
 	glutMainLoop ();

@@ -88,4 +88,4 @@ typedef CMatrix<double, 2> CMat2d;
 typedef CMatrix<double, 3> CMat3d;
 typedef CMatrix<double, 4> CMat4d;
 
-#endif;
+#endif
