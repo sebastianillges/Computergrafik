@@ -9,6 +9,7 @@
 #include "glut.h"
 #include <iostream>
 using namespace std;
+#include <map>
 
 // system relevant global variables
 // window width and height (choose an appropriate size)
@@ -42,7 +43,10 @@ public:
 		this->x = x;
 		this->y = y;
 	}
-
+	bool operator() (const Point& lhs, const Point& rhs) const
+   	{
+       return lhs.x < rhs.x;
+   	}
 	int x, y;
 };
 class Color
@@ -59,6 +63,7 @@ public:
 	}
 	float r, g, b;
 };
+map<int, Color> colormap;
 void bhamLine(Point, Point, Color);
 void aliasLine(Point, Point, Color);
 void bhamCircle(Point, int, Color);
@@ -122,6 +127,7 @@ void timer (int value) {
 	// variables for display2 ...
 	moon = rotate_matrix(sun.get(0), sun.get(1), moon.get(0), moon.get(1), angle_incr_sun_earth) * rotate_matrix(earth.get(0), earth.get(1), moon.get(0), moon.get(1), angle_incr_earth_moon) * moon;
 	earth = rotate_matrix(sun.get(0), sun.get(1), earth.get(0), earth.get(1), angle_incr_sun_earth) * earth;
+
 	// the last two lines should always be
 	glutPostRedisplay ();
 	glutTimerFunc (g_iTimerMSecs, timer, 0);	// call timer for next iteration
@@ -149,15 +155,18 @@ void display1 (void)
 void display2 (void) 
 {
 	glClear (GL_COLOR_BUFFER_BIT);
-	bhamLine(Point((int) sun.get(0), (int) sun.get(1)), Point((int) earth.get(0), (int) earth.get(1)), Color(1,1,1));
-	bhamLine(Point((int) earth.get(0), (int) earth.get(1)), Point((int) moon.get(0), (int) moon.get(1)), Color(1,1,1));
-	bhamCircle(Point((int)earth_x, (int)earth_y), 20, Color(0,0,1));
-	bhamCircle(Point((int)sun_x, (int)sun_y), 40, Color(1,1,0));
-	bhamCircle(Point((int)moon_x, (int)moon_y), 10, Color(0,1,0));
-	//floodFill(Point((int)earth_x, (int)earth_y), Color(1,0,0));
+	colormap.clear();
+	//bhamLine(Point((int) sun.get(0), (int) sun.get(1)), Point((int) earth.get(0), (int) earth.get(1)), Color(1,1,1));
+	//bhamLine(Point((int) earth.get(0), (int) earth.get(1)), Point((int) moon.get(0), (int) moon.get(1)), Color(1,1,1));
+	bhamCircle(Point((int) earth.get(0), (int) earth.get(1)), 20, Color(0,0,1));
+	bhamCircle(Point((int) sun.get(0), (int) sun.get(1)), 50, Color(1,1,0));
+	bhamCircle(Point((int) moon.get(0), (int) moon.get(1)), 10, Color(0.5,0.5,0.5));
+	floodFill(Point((int) sun.get(0), (int)sun.get(1)), Color(1,1,0));
+	floodFill(Point((int) earth.get(0), (int)earth.get(1)), Color(0,0,1));
+	floodFill(Point((int) moon.get(0), (int)moon.get(1)), Color(0.5,0.5,0.5));
 
 	// In double buffer mode the last
-	// two lines should alsways be
+	// two lines should always be
 	glFlush ();
 	glutSwapBuffers (); // swap front and back buffer
 }
@@ -355,6 +364,7 @@ void bhamCircle(Point p, int r, Color c) {
 	glBegin(GL_POINTS);
 		glColor3f(c.r,c.g,c.b);
 		glVertex2i(p.x, p.y);
+		//colormap.insert({p.x*g_iHeight+p.y, c});
 
 		int x, y, d, dSE, dE, trueX, trueY;
 
@@ -363,6 +373,10 @@ void bhamCircle(Point p, int r, Color c) {
 		x = 0;
 		y = r;
 		d = 5 - 4 * r;
+		colormap.insert({(x+trueX)*g_iHeight+y+trueY, c});
+		colormap.insert({(y+trueX)*g_iHeight+x+trueY, c});
+		colormap.insert({(x+trueX)*g_iHeight+-y+trueY, c});
+		colormap.insert({(-y+trueX)*g_iHeight+-x+trueY, c});
 		glVertex2i(x+trueX, y+trueY);
 		glVertex2i(y+trueX, x+trueY);
 		glVertex2i(x+trueX, -y+trueY);
@@ -380,6 +394,14 @@ void bhamCircle(Point p, int r, Color c) {
 				d += dE;
 				x++;
 			}
+			colormap.insert({(x+trueX)*g_iHeight+y+trueY, c});
+			colormap.insert({(y+trueX)*g_iHeight+x+trueY, c});
+			colormap.insert({(-x+trueX)*g_iHeight+y+trueY, c});
+			colormap.insert({(-y+trueX)*g_iHeight+x+trueY, c});
+			colormap.insert({(x+trueX)*g_iHeight-y+trueY, c});
+			colormap.insert({(y+trueX)*g_iHeight-x+trueY, c});
+			colormap.insert({(-x+trueX)*g_iHeight-y+trueY, c});
+			colormap.insert({(-y+trueX)*g_iHeight-x+trueY, c});
 			glVertex2i(x+trueX, y+trueY);
 			glVertex2i(y+trueX, x+trueY);
 			glVertex2i(-x+trueX, y+trueY);
@@ -393,27 +415,21 @@ void bhamCircle(Point p, int r, Color c) {
 }
 
 void floodFill(Point p, Color c) {
-	Color color;
-	glReadPixels(p.x, p.y, 1, 1, GL_RGB, GL_FLOAT, &color);
-	if (c.equals(color)) {
-		cout << "FUNKTIONIERT";
+	auto x = colormap.find(p.x*g_iHeight+p.y);
+	if (x != colormap.end()) {
+		if (colormap.at(p.x*g_iHeight+p.y).equals(c)) {
+			return;
+		}
+	}
+	if (p.x + 1 >= g_iWidth / 2 || p.x - 1 <= -g_iWidth / 2 || p.y + 1 >= g_iHeight / 2 || p.y - 1 <= -g_iHeight / 2) {
+		cout << "warum?";
 		return;
 	}
+	colormap.insert({p.x*g_iHeight+p.y, c});
 	glBegin(GL_POINTS);
 		glColor3f(c.r,c.g,c.b);
 		glVertex2i(p.x, p.y);
 	glEnd();
-	/*cout << c.r;
-	cout << c.g;
-	cout << c.b;
-	cout << color.r;
-	cout << color.g;
-	cout << color.b;
-	cout << ";( ";
-	return;*/
-	if (p.x + 1 >= g_iWidth / 2 || p.x - 1 <= -g_iWidth /2 || p.y + 1 >= g_iHeight /2 || p.y - 1 <= g_iHeight / 2) {
-		return;
-	}
 	floodFill(Point(p.x+1, p.y), c);
 	floodFill(Point(p.x-1, p.y), c);
 	floodFill(Point(p.x, p.y+1), c);
