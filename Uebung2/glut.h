@@ -46,10 +46,10 @@
 #endif
 #endif
 /* XXX This is from Win32's <ctype.h> */
-#ifndef _WCHAR_T_DEFINED
+/*#ifndef _WCHAR_T_DEFINED
 typedef unsigned short wchar_t;
 #define _WCHAR_T_DEFINED
-#endif
+#endif*/
 #endif
 
 /* To disable automatic library usage for GLUT, define GLUT_NO_LIB_PRAGMA

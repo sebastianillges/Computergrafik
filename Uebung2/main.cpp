@@ -27,6 +27,23 @@ int g_iTimerMSecs;
 // private, global variables ... replace by your own ones
 //
 // some global state variables used to describe ...
+float sun_x;
+float sun_y;
+float earth_x;
+float earth_y;
+float moon_x;
+float moon_y;
+float angle_earth_moon;
+float angle_sun_earth;
+float angle_incr_earth_moon;
+float angle_incr_sun_earth;
+
+CVec3f sun;
+CVec3f earth;
+CVec3f moon;
+CMat3f rotate_earth_sun; // the homogeneous transformation matrix of earths rotation around the sun
+CMat3f rotate_moon_earth_sun; // the homogeneous transformation matrix of the moons rotation around the earth AND the sun
+
 float g_iPos;		// ... position and ...
 float g_iPosIncr;	// ... position increment (used in display1)
 
@@ -51,6 +68,28 @@ void init ()
 	int aiPosIncr[2] = {2, 2};
 	g_vecPos.setData (aiPos);
 	g_vecPosIncr.setData (aiPosIncr);
+
+	sun_x = 0;
+	sun_y = 0;
+	earth_x = 0;
+	earth_y = g_iWidth / 2;
+	moon_x = 0;
+	moon_y = g_iWidth / (4.0/3.0);
+	angle_earth_moon = 0;
+	angle_sun_earth = 0;
+	angle_incr_earth_moon = 0; // ?
+	angle_incr_sun_earth = 0; // ?
+
+	float sunPos [2] = {sun_x, sun_y};
+	float earthPos [2] = {earth_x, earth_y};
+	float moonPos [2] = {moon_x, moon_y};
+	sun.setData(sunPos);
+	earth.setData(earthPos);
+	moon.setData(moonPos);
+
+	// TODO: Calculate the transformation matrices using translations and rotations given the positions and angular increments.
+	// rotate_earth_sun.setData(?)
+	// rotate_moon_earth.setData(?)
 }
 
 // function to initialize the view to ortho-projection
@@ -197,7 +236,7 @@ int main (int argc, char **argv)
 	// we have to use double buffer to avoid flickering
 	// TODO: lookup "double buffer", what is it for, how is it used ...
 	glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGB);
-	glutCreateWindow ("�bung 2");
+	glutCreateWindow ("Übung 2");
 
 	init ();	// init my variables first
 	initGL ();	// init the GL (i.e. view settings, ...)
