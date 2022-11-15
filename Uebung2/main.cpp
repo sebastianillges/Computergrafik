@@ -7,11 +7,12 @@
 // might be you have to swith to
 // #include "glut.h" depending on your GLUT installation
 #include "glut.h"
+#include <iostream>
 using namespace std;
 
 // system relevant global variables
 // window width and height (choose an appropriate size)
-const int g_iWidth  = 1080;
+const int g_iWidth  = 1920;
 const int g_iHeight = 1080;
 
 // global variable to tune the timer interval
@@ -29,13 +30,9 @@ double angle_sun_earth;
 double angle_incr_earth_moon;
 double angle_incr_sun_earth;
 
-double t_array[3][3];
-double t2_array[3][3];
 CVec3d sun;
 CVec3d earth;
 CVec3d moon;
-CMat3d rotate_around_sun; // the homogeneous transformation matrix of earths rotation around the sun
-CMat3d rotate_around_earth; // the homogeneous transformation matrix of the moons rotation around the earth AND the sun
 
 class Point
 {
@@ -57,12 +54,18 @@ public:
 		this->g = g;
 		this->b = b;
 	}
-
+	bool equals(Color c) {
+		return (this->r == c.r && this->g == c.g && this->b == c.b);
+	}
 	float r, g, b;
 };
 void bhamLine(Point, Point, Color);
+void aliasLine(Point, Point, Color);
+void bhamCircle(Point, int, Color);
 void rotate_origin(double *, double *, double);
 void rotate(double, double, double*, double*, double);
+CMat3d rotate_matrix(double, double, double, double, double);
+void floodFill(Point, Color);
 
 // function to initialize our own variables
 void init () 
@@ -75,7 +78,7 @@ void init ()
 	sun_y = 0;
 	earth_x = g_iWidth / 4;
 	earth_y = 0;
-	moon_x = g_iWidth / (16.0/3.0);
+	moon_x = g_iWidth / (32.0/7.0);
 	moon_y = 0;
 	angle_earth_moon = 0;
 	angle_sun_earth = 0;
@@ -89,29 +92,6 @@ void init ()
 	sun.setData(sunPos);
 	earth.setData(earthPos);
 	moon.setData(moonPos);
-	double rot_array[3][3];
-	rot_array[0][0] = cos(angle_incr_sun_earth);
-	rot_array[0][1] = -1*sin(angle_incr_sun_earth);
-	rot_array[0][2] = 0;
-	rot_array[1][0] = sin(angle_incr_sun_earth);
-	rot_array[1][1] = rot_array[0][0];
-	rot_array[1][2] = 0;
-	rot_array[2][0] = 0;
-	rot_array[2][1] = 0;
-	rot_array[2][2] = 1;
-	rotate_around_sun = CMatrix<double,3>(rot_array);
-
-	double rot1_array[3][3];
-	rot1_array[0][0] = cos(angle_incr_earth_moon);
-	rot1_array[0][1] = -1*sin(angle_incr_earth_moon);
-	rot1_array[0][2] = 0;
-	rot1_array[1][0] = sin(angle_incr_earth_moon);
-	rot1_array[1][1] = rot1_array[0][0];
-	rot1_array[1][2] = 0;
-	rot1_array[2][0] = 0;
-	rot1_array[2][1] = 0;
-	rot1_array[2][2] = 1;
-	rotate_around_earth = CMat3d(rot1_array);
 }
 
 // function to initialize the view to ortho-projection
@@ -140,27 +120,8 @@ void timer (int value) {
 	rotate_origin(&moon_x, &moon_y, angle_incr_sun_earth);
 
 	// variables for display2 ...
-	t_array[0][0] = 1;
-	t_array[0][1] = 0;
-	t_array[0][2] = -1*earth.get(0);
-	t_array[1][0] = 0;
-	t_array[1][1] = 1;
-	t_array[1][2] = -1*earth.get(1);
-	t_array[2][0] = 0;
-	t_array[2][1] = 0;
-	t_array[2][2] = 1;
-	t2_array[0][0] = 1;
-	t2_array[0][1] = 0;
-	t2_array[0][2] = earth.get(0);
-	t2_array[1][0] = 0;
-	t2_array[1][1] = 1;
-	t2_array[1][2] = earth.get(1);
-	t2_array[2][0] = 0;
-	t2_array[2][1] = 0;
-	t2_array[2][2] = 1;
-	moon = rotate_around_sun * CMat3d(t2_array) * rotate_around_earth * CMat3d(t_array) * moon;
-	earth = rotate_around_sun * earth;
-
+	moon = rotate_matrix(sun.get(0), sun.get(1), moon.get(0), moon.get(1), angle_incr_sun_earth) * rotate_matrix(earth.get(0), earth.get(1), moon.get(0), moon.get(1), angle_incr_earth_moon) * moon;
+	earth = rotate_matrix(sun.get(0), sun.get(1), earth.get(0), earth.get(1), angle_incr_sun_earth) * earth;
 	// the last two lines should always be
 	glutPostRedisplay ();
 	glutTimerFunc (g_iTimerMSecs, timer, 0);	// call timer for next iteration
@@ -170,9 +131,14 @@ void timer (int value) {
 void display1 (void) 
 {
 	glClear (GL_COLOR_BUFFER_BIT);
-	bhamLine(Point((int)sun_x, (int)sun_y), Point((int)earth_x, (int)earth_y), Color(1,0,0));
-	bhamLine(Point((int)earth_x, (int) earth_y), Point((int) moon_x, (int) moon_y), Color(0,0,1));
-
+	//bhamLine(Point((int)sun_x, (int)sun_y), Point((int)earth_x, (int)earth_y), Color(1,1,0));
+	aliasLine(Point((int)sun_x, (int)sun_y), Point((int)earth_x, (int)earth_y), Color(0,1,1));
+	bhamLine(Point((int)earth_x, (int) earth_y), Point((int) moon_x, (int) moon_y), Color(0,1,1));
+	bhamCircle(Point((int)earth_x, (int)earth_y), 20, Color(0,0,1));
+	bhamCircle(Point((int)sun_x, (int)sun_y), 40, Color(1,1,0));
+	bhamCircle(Point((int)moon_x, (int)moon_y), 10, Color(0,1,0));
+	//floodFill(Point((int)earth_x, (int)earth_y), Color(0,0,1));
+	
 	// In double buffer mode the last
 	// two lines should alsways be
 	glFlush ();
@@ -183,9 +149,12 @@ void display1 (void)
 void display2 (void) 
 {
 	glClear (GL_COLOR_BUFFER_BIT);
-
-	bhamLine(Point((int) sun.get(0), (int) sun.get(1)), Point((int) earth.get(0), (int) earth.get(1)), Color(1,0,0));
-	bhamLine(Point((int) earth.get(0), (int) earth.get(1)), Point((int) moon.get(0), (int) moon.get(1)), Color(0,1,0));
+	bhamLine(Point((int) sun.get(0), (int) sun.get(1)), Point((int) earth.get(0), (int) earth.get(1)), Color(1,1,1));
+	bhamLine(Point((int) earth.get(0), (int) earth.get(1)), Point((int) moon.get(0), (int) moon.get(1)), Color(1,1,1));
+	bhamCircle(Point((int)earth_x, (int)earth_y), 20, Color(0,0,1));
+	bhamCircle(Point((int)sun_x, (int)sun_y), 40, Color(1,1,0));
+	bhamCircle(Point((int)moon_x, (int)moon_y), 10, Color(0,1,0));
+	//floodFill(Point((int)earth_x, (int)earth_y), Color(1,0,0));
 
 	// In double buffer mode the last
 	// two lines should alsways be
@@ -230,10 +199,109 @@ void rotate(double px1, double py1, double* px2, double* py2, double increment) 
 	*py2 = sin(angle) * distance + py1;
 }
 
+CMat3d rotate_matrix(double px1, double py1, double px2, double py2, double angle) {
+	double rot_array[3][3];
+	rot_array[0][0] = cos(angle);
+	rot_array[0][1] = -1*sin(angle);
+	rot_array[0][2] = 0;
+	rot_array[1][0] = sin(angle);
+	rot_array[1][1] = rot_array[0][0];
+	rot_array[1][2] = 0;
+	rot_array[2][0] = 0;
+	rot_array[2][1] = 0;
+	rot_array[2][2] = 1;
+	CMat3d rotate = CMatrix<double,3>(rot_array);
+	if (px1 == 0 && py1 == 0) {
+		return rotate;
+	}
+	double t_array[3][3];
+	double t2_array[3][3];
+	t_array[0][0] = 1;
+	t_array[0][1] = 0;
+	t_array[0][2] = -px1;
+	t_array[1][0] = 0;
+	t_array[1][1] = 1;
+	t_array[1][2] = -py1;
+	t_array[2][0] = 0;
+	t_array[2][1] = 0;
+	t_array[2][2] = 1;
+	t2_array[0][0] = 1;
+	t2_array[0][1] = 0;
+	t2_array[0][2] = px1;
+	t2_array[1][0] = 0;
+	t2_array[1][1] = 1;
+	t2_array[1][2] = py1;
+	t2_array[2][0] = 0;
+	t2_array[2][1] = 0;
+	t2_array[2][2] = 1;
+	return CMat3d(t2_array)*rotate*CMat3d(t_array);
+}
+
+int abs(int a)
+{
+    return (((a) < 0) ? -(a) : a);
+}
+// Xiaolin Wu , Line Algorithm
+void aliasLine(Point p1, Point p2, Color c)
+{
+    glBegin(GL_POINTS);
+    glColor3f(c.r, c.g, c.b);
+    glVertex2i(p1.x, p1.y);
+
+    int dx = p2.x - p1.x;
+    int ax = abs(dx) << 1;
+    int sx = (((dx) < 0) ? -1 : 1);
+
+    int dy = p2.y - p1.y;
+    int ay = abs(dy) << 1;
+    int sy = (((dy) < 0) ? -1 : 1);
+
+    if (ax > ay)
+    {
+
+        int d = ay - (ax >> 1);
+        while (p1.x != p2.x)
+        {
+            glColor3f(c.r, c.g, c.b);
+            glVertex2i(p1.x, p1.y);
+
+            if (d >= 0)
+            {
+                p1.y += sy;
+                d -= ax;
+            }
+            p1.x += sx;
+            d += ay;
+        }
+    }
+    else
+    {
+
+        int d = ax - (ay >> 1);
+        while (p1.y != p2.y)
+        {
+            glColor3f(c.r, c.g, c.b);
+            glVertex2i(p1.x, p1.y);
+            if (d >= 0)
+            {
+                p1.x += sx;
+                d -= ay;
+            }
+            p1.y += sy;
+            d += ax;
+        }
+    }
+
+    glColor3f(c.r, c.g, c.b);
+    glVertex2i(p1.x, p1.y);
+
+    glEnd();
+}
+
 void bhamLine(Point p1, Point p2, Color c)
 {
 	glBegin(GL_POINTS);
-		glColor3f (c.r,c.g,c.b);
+		glColor3f(c.r,c.g,c.b);
 		glVertex2i(p1.x, p1.y);
 		int delta_X = p2.x - p1.x;
 		int delta_Y = p2.y - p1.y;
@@ -280,6 +348,76 @@ void bhamLine(Point p1, Point p2, Color c)
 			glVertex2i(p1.x, p1.y);
 		}
 	glEnd();
+}
+
+void bhamCircle(Point p, int r, Color c) {
+  // Mittelpunkt
+	glBegin(GL_POINTS);
+		glColor3f(c.r,c.g,c.b);
+		glVertex2i(p.x, p.y);
+
+		int x, y, d, dSE, dE, trueX, trueY;
+
+		trueX = p.x;
+		trueY = p.y;
+		x = 0;
+		y = r;
+		d = 5 - 4 * r;
+		glVertex2i(x+trueX, y+trueY);
+		glVertex2i(y+trueX, x+trueY);
+		glVertex2i(x+trueX, -y+trueY);
+		glVertex2i(-y+trueX, -x+trueY);
+
+		while (y > x) {
+			if (d >= 0) {
+				dSE =  4 * (2 * (x - y) + 5);
+				d += dSE;
+				x++;
+				y--;
+			}
+			else {
+				dE = 4 * (2 * x + 3);
+				d += dE;
+				x++;
+			}
+			glVertex2i(x+trueX, y+trueY);
+			glVertex2i(y+trueX, x+trueY);
+			glVertex2i(-x+trueX, y+trueY);
+			glVertex2i(-y+trueX, x+trueY);
+			glVertex2i(x+trueX, -y+trueY);
+			glVertex2i(y+trueX, -x+trueY);
+			glVertex2i(-x+trueX, -y+trueY);
+			glVertex2i(-y+trueX, -x+trueY);
+		}
+	glEnd();
+}
+
+void floodFill(Point p, Color c) {
+	Color color;
+	glReadPixels(p.x, p.y, 1, 1, GL_RGB, GL_FLOAT, &color);
+	if (c.equals(color)) {
+		cout << "FUNKTIONIERT";
+		return;
+	}
+	glBegin(GL_POINTS);
+		glColor3f(c.r,c.g,c.b);
+		glVertex2i(p.x, p.y);
+	glEnd();
+	/*cout << c.r;
+	cout << c.g;
+	cout << c.b;
+	cout << color.r;
+	cout << color.g;
+	cout << color.b;
+	cout << ";( ";
+	return;*/
+	if (p.x + 1 >= g_iWidth / 2 || p.x - 1 <= -g_iWidth /2 || p.y + 1 >= g_iHeight /2 || p.y - 1 <= g_iHeight / 2) {
+		return;
+	}
+	floodFill(Point(p.x+1, p.y), c);
+	floodFill(Point(p.x-1, p.y), c);
+	floodFill(Point(p.x, p.y+1), c);
+	floodFill(Point(p.x, p.y-1), c);
 }
 
 int main (int argc, char **argv) 
