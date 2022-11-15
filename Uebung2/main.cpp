@@ -309,16 +309,16 @@ void bhamLine(Point p1, Point p2, Color c)
 		// Richtungs bestimmen
 		int sx = delta_X >= 0 ? 1 : -1; // links rechts
 		int sy = delta_Y >= 0 ? 1 : -1; // hoch runter
-		if (std::abs(delta_X) >= std::abs(delta_Y))
+		if (abs(delta_X) >= abs(delta_Y))
 		{
 			fast = &p1.x; // x kann 2 pixel
 			slow = &p1.y; // y kann 1 pixel
 			sFast = &sx;
 			sSlow = &sy;
-			delta_NE = (std::abs(delta_Y) - std::abs(delta_X)) * 2;
-			delta_E = std::abs(2 * delta_Y);
+			delta_NE = (abs(delta_Y) - abs(delta_X)) * 2;
+			delta_E = abs(2 * delta_Y);
 			//		langsame richtung - schnelle richtung
-			d = 2 * std::abs(delta_Y) - std::abs(delta_X);
+			d = 2 * abs(delta_Y) - abs(delta_X);
 		}
 		else
 		{
@@ -326,9 +326,9 @@ void bhamLine(Point p1, Point p2, Color c)
 			slow = &p1.x;
 			sFast = &sy;
 			sSlow = &sx;
-			delta_NE = (std::abs(delta_X) - std::abs(delta_Y)) * 2;
-			delta_E = std::abs(2 * delta_X);
-			d = 2 * std::abs(delta_X) - std::abs(delta_Y);
+			delta_NE = (abs(delta_X) - abs(delta_Y)) * 2;
+			delta_E = abs(2 * delta_X);
+			d = 2 * abs(delta_X) - abs(delta_Y);
 		}
 
 		while (p1.x != p2.x || p1.y != p2.y)
