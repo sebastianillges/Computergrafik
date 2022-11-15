@@ -239,7 +239,7 @@ void bhamLine(Point p1, Point p2, Color c)
 	dx = p2flip.x - p1.x;
 	dy = p2flip.y - p1.y;
 	d = 2 * dy - dx;
-  dNE = 2 * (dy - dx);
+  	dNE = 2 * (dy - dx);
 	dE = 2 * dy;
 
 	// bresenham algo, vor jedem setPixel den Pixel zurückflippen
@@ -305,7 +305,7 @@ void bhamCircle(Point p, int r, Color c)
 			x++;
 		}
 
-		setPoint(Point(x + trueX, y + trueY), c);
+	setPoint(Point(x + trueX, y + trueY), c);
     setPoint(Point(y + trueX, x + trueY), c);
     setPoint(Point(-x  + trueX, y + trueY), c);
     setPoint(Point(-y + trueX, x + trueY), c);

@@ -42,6 +42,10 @@ public:
 		for (int i=0; i<SIZE; i++) atData[i] = m_atData[i];		
 	}
 
+	T get (int i) {
+		return m_atData[i];
+	}
+
 	unsigned getDimension () 
 	{
 		return SIZE;
