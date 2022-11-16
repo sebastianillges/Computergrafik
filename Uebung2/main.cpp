@@ -141,7 +141,7 @@ void display1 (void)
 	aliasLine(Point((int)sun_x, (int)sun_y), Point((int)earth_x, (int)earth_y), Color(0,1,1));
 	bhamLine(Point((int)earth_x, (int) earth_y), Point((int) moon_x, (int) moon_y), Color(0,1,1));
 	bhamCircle(Point((int)earth_x, (int)earth_y), 20, Color(0,0,1));
-	bhamCircle(Point((int)sun_x, (int)sun_y), 40, Color(1,1,0));
+	bhamCircle(Point((int)sun_x, (int)sun_y), 50, Color(1,1,0));
 	bhamCircle(Point((int)moon_x, (int)moon_y), 10, Color(0,1,0));
 	//floodFill(Point((int)earth_x, (int)earth_y), Color(0,0,1));
 	
@@ -415,9 +415,10 @@ void bhamCircle(Point p, int r, Color c) {
 }
 
 void floodFill(Point p, Color c) {
-	auto x = colormap.find(p.x*g_iHeight+p.y);
+	int key = p.x*g_iHeight+p.y;
+	auto x = colormap.find(key);
 	if (x != colormap.end()) {
-		if (colormap.at(p.x*g_iHeight+p.y).equals(c)) {
+		if (colormap.at(key).equals(c)) {
 			return;
 		}
 	}
@@ -425,7 +426,7 @@ void floodFill(Point p, Color c) {
 		cout << "warum?";
 		return;
 	}
-	colormap.insert({p.x*g_iHeight+p.y, c});
+	colormap.insert({key, c});
 	glBegin(GL_POINTS);
 		glColor3f(c.r,c.g,c.b);
 		glVertex2i(p.x, p.y);
