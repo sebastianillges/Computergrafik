@@ -13,8 +13,8 @@ using namespace std;
 
 // system relevant global variables
 // window width and height (choose an appropriate size)
-const int g_iWidth  = 1920;
-const int g_iHeight = 1080;
+const int g_iWidth  = 2560;
+const int g_iHeight = 1600;
 
 // global variable to tune the timer interval
 int g_iTimerMSecs;
@@ -155,15 +155,15 @@ void display1 (void)
 void display2 (void) 
 {
 	glClear (GL_COLOR_BUFFER_BIT);
-	colormap.clear();
+	//colormap.clear();
 	//bhamLine(Point((int) sun.get(0), (int) sun.get(1)), Point((int) earth.get(0), (int) earth.get(1)), Color(1,1,1));
 	//bhamLine(Point((int) earth.get(0), (int) earth.get(1)), Point((int) moon.get(0), (int) moon.get(1)), Color(1,1,1));
 	bhamCircle(Point((int) earth.get(0), (int) earth.get(1)), 20, Color(0,0,1));
 	bhamCircle(Point((int) sun.get(0), (int) sun.get(1)), 50, Color(1,1,0));
 	bhamCircle(Point((int) moon.get(0), (int) moon.get(1)), 10, Color(0.5,0.5,0.5));
-	floodFill(Point((int) sun.get(0), (int)sun.get(1)), Color(1,1,0));
-	floodFill(Point((int) earth.get(0), (int)earth.get(1)), Color(0,0,1));
-	floodFill(Point((int) moon.get(0), (int)moon.get(1)), Color(0.5,0.5,0.5));
+	//floodFill(Point((int) sun.get(0), (int)sun.get(1)), Color(1,1,0));
+	//floodFill(Point((int) earth.get(0), (int)earth.get(1)), Color(0,0,1));
+	//floodFill(Point((int) moon.get(0), (int)moon.get(1)), Color(0.5,0.5,0.5));
 
 	// In double buffer mode the last
 	// two lines should always be
@@ -365,6 +365,7 @@ void bhamCircle(Point p, int r, Color c) {
 		glColor3f(c.r,c.g,c.b);
 		glVertex2i(p.x, p.y);
 		//colormap.insert({p.x*g_iHeight+p.y, c});
+    glEnd();
 
 		int x, y, d, dSE, dE, trueX, trueY;
 
@@ -373,14 +374,23 @@ void bhamCircle(Point p, int r, Color c) {
 		x = 0;
 		y = r;
 		d = 5 - 4 * r;
-		colormap.insert({(x+trueX)*g_iHeight+y+trueY, c});
+    glBegin(GL_LINES);
+    glVertex2i(x+trueX, y+trueY);
+		glVertex2i(y+trueX, x+trueY);
+    glEnd();
+    glBegin(GL_LINES);
+    glVertex2i(x+trueX, y+trueY);
+    glVertex2i(-y+trueX, -x+trueY);
+    glEnd();
+
+		/*colormap.insert({(x+trueX)*g_iHeight+y+trueY, c});
 		colormap.insert({(y+trueX)*g_iHeight+x+trueY, c});
 		colormap.insert({(x+trueX)*g_iHeight+-y+trueY, c});
 		colormap.insert({(-y+trueX)*g_iHeight+-x+trueY, c});
 		glVertex2i(x+trueX, y+trueY);
 		glVertex2i(y+trueX, x+trueY);
 		glVertex2i(x+trueX, -y+trueY);
-		glVertex2i(-y+trueX, -x+trueY);
+		glVertex2i(-y+trueX, -x+trueY);*/
 
 		while (y > x) {
 			if (d >= 0) {
@@ -394,6 +404,23 @@ void bhamCircle(Point p, int r, Color c) {
 				d += dE;
 				x++;
 			}
+      glBegin(GL_LINES);
+			glVertex2i(-y+trueX, x+trueY);
+			glVertex2i(y+trueX, -x+trueY);
+      glEnd();
+      glBegin(GL_LINES);
+			glVertex2i(-x+trueX, y+trueY);
+			glVertex2i(x+trueX, -y+trueY);
+      glEnd();
+      glBegin(GL_LINES);
+        glVertex2i(y+trueX, x+trueY);
+        glVertex2i(-y+trueX, -x+trueY);
+      glEnd();
+      glBegin(GL_LINES);
+        glVertex2i(x+trueX, y+trueY);
+        glVertex2i(-x+trueX, -y+trueY);
+      glEnd();
+      /*
 			colormap.insert({(x+trueX)*g_iHeight+y+trueY, c});
 			colormap.insert({(y+trueX)*g_iHeight+x+trueY, c});
 			colormap.insert({(-x+trueX)*g_iHeight+y+trueY, c});
@@ -409,9 +436,9 @@ void bhamCircle(Point p, int r, Color c) {
 			glVertex2i(x+trueX, -y+trueY);
 			glVertex2i(y+trueX, -x+trueY);
 			glVertex2i(-x+trueX, -y+trueY);
-			glVertex2i(-y+trueX, -x+trueY);
+			glVertex2i(-y+trueX, -x+trueY);*/
 		}
-	glEnd();
+	//glEnd();
 }
 
 void floodFill(Point p, Color c) {
