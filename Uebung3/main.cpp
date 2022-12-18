@@ -3,6 +3,7 @@
 #include <math.h>
 #include "vec.h"
 #include "mat.h"
+#include "cuboid.h"
 
 // might be you have to swith to
 // #include "glut.h" depending on your GLUT installation
@@ -19,9 +20,9 @@ const int g_iHeight = 1080;
 int g_iTimerMSecs;
 
 // cuboids
-CVec4f c1[8];
-CVec4f c2[8];
-CVec4f c3[8];
+Cuboid cuboid1;
+Cuboid cuboid2;
+Cuboid cuboid3;
 
 class Point
 {
@@ -30,6 +31,14 @@ public:
 	{
 		this->x = x;
 		this->y = y;
+	}
+	Point(CVec3f cvec) {
+		this->x = (int) cvec.get(0);
+		this->y = (int) cvec.get(1);
+	}
+	Point(CVec4f cvec) {
+		this->x = (int) cvec.get(0);
+		this->y = (int) cvec.get(1);
 	}
 	bool operator() (const Point& lhs, const Point& rhs) const
    	{
@@ -51,6 +60,12 @@ public:
 	}
 	float r, g, b;
 };
+
+CVec4f homogenize(CVec3f cvec)
+{
+	float atData[4] = {cvec.get(0), cvec.get(1), cvec.get(2), 1};
+	return CVec4f(atData);
+}
 
 void bhamLine(Point p1, Point p2, Color c)
 {
@@ -162,7 +177,7 @@ void bhamCircle(Point p, int r, Color c)
 
 CVec4f projectZ(float fFocus, CVec4f pView)
 {
-	CVec3f viewOrigin;
+	/*CVec3f viewOrigin;
 	CVec3f viewDir;
 	CVec3f viewUp;
 	CVec3f viewLeft;
@@ -181,7 +196,7 @@ CVec4f projectZ(float fFocus, CVec4f pView)
 
 	
 	float m_mat[4][4] = {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 0, 0}, {0, 0, 1/-fFocus, 1}};
-	CMat4f m = CMatrix<float,4>(m_mat);
+	CMat4f m = CMatrix<float,4>(m_mat);*/
 
 	//return pView * m;
 	float x = pView.get(0);
@@ -198,11 +213,10 @@ CVec4f projectZ(float fFocus, CVec4f pView)
 	return pNew;
 
 }
-
 void drawProjektedZ(CVec4f points[8], Color c) {
 	Point Points[8];
 	for (int i = 0; i < 8; i++) {
-		Points[i] = Point((int) points[i].get(0), (int) points[i].get(1));
+		Points[i] = Point(points[i]);
 	}
 	bhamLine(Points[0], Points[1], c);
 	bhamLine(Points[0], Points[3], c);
@@ -217,18 +231,16 @@ void drawProjektedZ(CVec4f points[8], Color c) {
 	bhamLine(Points[5], Points[6], c);
 	bhamLine(Points[6], Points[7], c);
 }
-
 //     5------6
 //    /|     /|
 //   1------2 |
 //   | 4----|-7
 //   |/     |/
 //   0------3
-
-void drawQuader(CVec4f Cuboid[8],float fFocus, Color c) {
+void drawQuader(Cuboid cuboid, float fFocus, Color c) {
 	CVec4f points[8];
 	for (int i = 0; i < 8; i++) {
-		points[i] = projectZ(fFocus, Cuboid[i]);
+		points[i] = projectZ(fFocus, cuboid.get_homogeneous(i));
 	}
 	drawProjektedZ(points, c);
 }
@@ -239,24 +251,9 @@ void init ()
 	// init timer interval
 	g_iTimerMSecs = 10;
 
-	// init variables for display1
-	float c1p0[4] = {-100, -100, 100, 1};
-	float c1p1[4] = {-100, 300, 100, 1};
-	float c1p2[4] = {300, 300, 100, 1};
-	float c1p3[4] = {300, -100, 100, 1};
-	float c1p4[4] = {-100, -100, 500, 1};
-	float c1p5[4] = {-100, 300, 500, 1};
-	float c1p6[4] = {300, 300, 500, 1};
-	float c1p7[4] = {300, -100, 500, 1};
-	
-	c1[0].setData(c1p0);
-	c1[1].setData(c1p1);
-	c1[2].setData(c1p2);
-	c1[3].setData(c1p3);
-	c1[4].setData(c1p4);
-	c1[5].setData(c1p5);
-	c1[6].setData(c1p6);
-	c1[7].setData(c1p7);
+	// init cuboids for display1
+	float c1_corner[3] = {-100, -100, 100};
+	cuboid1 = Cuboid(CVec3f(c1_corner), 400);
 
 	// init variables for display2
 	
@@ -279,7 +276,7 @@ void initGL ()
 	glClearColor (0,0,0,1);
 }
 
-int min (int a, int b) { return a>b? a: b; }
+// int min (int a, int b) { return a>b? a: b; }
 // timer callback function
 void timer (int value) {
 	// variables for display1 ...
@@ -295,7 +292,7 @@ void timer (int value) {
 void display1 (void) 
 {
 	glClear (GL_COLOR_BUFFER_BIT);
-	drawQuader(c1, -1000, Color(1,0,0));
+	drawQuader(cuboid1, -1000, Color(1,0,0));
 	// In double buffer mode the last
 	// two lines should alsways be
 	glFlush ();
