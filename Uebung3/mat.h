@@ -39,6 +39,10 @@ public:
 		}
 	}
 
+	T get(int i, int j) {
+		return m_aatData[i][j];
+	}
+
 	T &operator () (unsigned i, unsigned j) 
 	{
 		if (i>=SIZE) i = SIZE-1;
@@ -51,6 +55,17 @@ public:
 		if (i>=SIZE) i = SIZE-1;
 		if (j>=SIZE) j = SIZE-1;
 		return m_aatData[i][j];
+	}
+
+	// unary -
+	// -vec i.e. -(*this)
+	CMatrix<T, SIZE> operator - () 
+	{
+		T atBuf[SIZE][SIZE];
+		for (int i=0; i<SIZE; i++) // ZEILE i
+			for (int j=0; j<SIZE; j++) // Spalte j
+					atBuf[i][j] = -1 * m_aatData[i][j];
+		return CMatrix<T, Size>(atBuf);
 	}
 
 	// CMatrix<T, SIZE>operator + (const Matrix<T, SIZE> &mat)

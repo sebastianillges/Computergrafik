@@ -37,6 +37,16 @@ public:
 		for (int i=0; i<SIZE; i++) m_atData[i] = atData[i];		
 	}
 
+	void set (int i, const T data)
+	{
+		m_atData[i] = data;
+	}
+
+	void increment (int i, const T data)
+	{
+		m_atData[i] += data;
+	}
+
 	void getData (const T atData[SIZE]) 
 	{
 		for (int i=0; i<SIZE; i++) atData[i] = m_atData[i];		
