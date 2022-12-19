@@ -32,6 +32,17 @@ CVec4f viewDir;
 CVec4f viewUp;
 CVec4f viewLeft;
 
+// Clipping 
+#define CLIPLEFT  1  // Binär   0001
+#define CLIPRIGHT 2  //         0010
+#define CLIPLOWER 4  //         0100
+#define CLIPUPPER 8  //         1000
+
+float xMin = -g_iWidth / 2;
+float xMax = g_iWidth / 2;
+float yMin = -g_iHeight / 2;
+float yMax = g_iHeight / 2;
+
 float fFocus;
 
 class Point
@@ -112,14 +123,93 @@ CMat4f transpose(CMat4f mat) {
 	rt_arr[3][3] = 1;
 }
 
+/*
+#define CLIPLEFT  1  // Binär   0001
+#define CLIPRIGHT 2  //         0010
+#define CLIPLOWER 4  //         0100
+#define CLIPUPPER 8  //         1000
+*/
+
 void bhamLine(Point p1, Point p2, Color c)
 {
+
+	int delta_X = p2.x - p1.x;
+	int delta_Y = p2.y - p1.y;
+
+	// Clipping
+	int K1=0,K2=0;
+	if(p1.y < yMin) K1 =CLIPLOWER;
+	if(p1.y > yMax) K1 =CLIPUPPER;
+	if(p1.x < xMin) K1|=CLIPLEFT;
+	if(p1.x > xMax) K1|=CLIPRIGHT;
+
+	if(p2.y < yMin) K2 =CLIPLOWER;
+	if(p2.y > yMax) K2 =CLIPUPPER;
+	if(p2.x < xMin) K2|=CLIPLEFT;
+	if(p2.x > xMax) K2|=CLIPRIGHT;
+
+	while ( K1 || K2 )
+	{
+		if( K1 & K2 ) break;											// muss nix gezeichnet werden
+		
+		if ( K1 ) {
+			if( K1 & CLIPLEFT ) {
+				p1.y += (xMin - p1.x) * delta_Y/delta_X;
+				p1.x = xMin;
+			}
+			else if ( K1 & CLIPRIGHT ) {
+				p1.y += (xMax - p1.x) * delta_Y / delta_X;
+				p1.x = xMax;
+			}
+
+			if( K1 & CLIPLOWER ) {
+				p1.x += (yMin-p1.y) * delta_X/delta_Y;
+				p1.y = yMin;
+			}
+			else if( K1 & CLIPUPPER ) {
+				p1.x += (yMax - p1.y) * delta_X/delta_Y;
+				p1.y = yMax;
+			}
+
+			K1 = 0;
+
+			if(p1.y < yMin) K1 =CLIPLOWER;
+			if(p1.y > yMax) K1 =CLIPUPPER;
+			if(p1.x < xMin) K1|=CLIPLEFT;
+			if(p1.x > xMax) K1|=CLIPRIGHT;
+		}
+		
+		if( K2 ) {
+			if( K2 & CLIPLEFT ) {
+				p2.y += (xMin - p2.x) * delta_Y / delta_X;
+				p2.x = xMin;
+			} else if( K2 & CLIPRIGHT ) {
+				 p2.y += (xMax - p2.x) * delta_Y / delta_X;
+				 p2.x = xMax; 
+			}
+			
+			if( K2 & CLIPLOWER ) {
+				p2.x += (yMin - p2.y) * delta_X / delta_Y;
+				p2.y = yMin;
+			} else if( K2 & CLIPUPPER ) {
+				p2.x += (yMax - p2.y) * delta_X / delta_Y;
+				p2.y = yMax;
+			}
+			K2 = 0;
+
+			if( p2.y < yMin ) K2 =CLIPLOWER;
+			if( p2.y > yMax ) K2 =CLIPUPPER;
+			if( p2.x < xMin ) K2|=CLIPLEFT;
+			if( p2.x > xMax ) K2|=CLIPRIGHT;
+		}
+	}
+
 	glBegin(GL_POINTS);
 		glColor3f(c.r,c.g,c.b);
 		glVertex2i(p1.x, p1.y);
-		int delta_X = p2.x - p1.x;
-		int delta_Y = p2.y - p1.y;
+		
 		int *fast, *slow, delta_NE, delta_E, d, *sFast, *sSlow;
+
 		// Richtungs bestimmen
 		int sx = delta_X >= 0 ? 1 : -1; // links rechts
 		int sy = delta_Y >= 0 ? 1 : -1; // hoch runter
