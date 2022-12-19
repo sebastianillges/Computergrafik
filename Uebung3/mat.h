@@ -65,7 +65,7 @@ public:
 		for (int i=0; i<SIZE; i++) // ZEILE i
 			for (int j=0; j<SIZE; j++) // Spalte j
 					atBuf[i][j] = -1 * m_aatData[i][j];
-		return CMatrix<T, Size>(atBuf);
+		return CMatrix<T, SIZE>(atBuf);
 	}
 
 	// CMatrix<T, SIZE>operator + (const Matrix<T, SIZE> &mat)

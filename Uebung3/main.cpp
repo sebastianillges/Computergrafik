@@ -19,24 +19,18 @@ const int g_iHeight = 1080;
 // global variable to tune the timer interval
 int g_iTimerMSecs;
 
+float pi = atan(1) * 4;
+int degree;
 // cuboids
 Cuboid cuboid1;
 Cuboid cuboid2;
 Cuboid cuboid3;
-
-// world system
-CVec3f WorldOrigin;
 
 // view system
 CVec4f viewOrigin;
 CVec4f viewDir;
 CVec4f viewUp;
 CVec4f viewLeft;
-CVec4f eyePoint;
-
-float x_angle;
-float y_angle;
-float z_angle;
 
 float fFocus;
 
@@ -90,6 +84,32 @@ CVec4f homogenize(CVec3f cvec)
 {
 	float atData[4] = {cvec.get(0), cvec.get(1), cvec.get(2), 1};
 	return CVec4f(atData);
+}
+
+CMat4f transpose(CMat4f mat) {
+	float r_transp[3][3];
+	float t[3];
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 3; ++j) {
+			r_transp[i][j] = mat.get(j, i);
+		}
+		t[i] = mat.get(i, 3);
+	}
+	CVec3f t_vec = CVec3f(t);
+	CMat3f r = CMat3f(r_transp);
+	CVec3f t_new_vec = -r * t_vec;
+
+	float rt_arr[4][4];
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 3; ++j) {
+			rt_arr[i][j] = r_transp[i][j];
+		}
+		rt_arr[i][3] = t_new_vec.get(i);
+	}
+	rt_arr[3][0] = 0;
+	rt_arr[3][1] = 0;
+	rt_arr[3][2] = 0;
+	rt_arr[3][3] = 1;
 }
 
 void bhamLine(Point p1, Point p2, Color c)
@@ -200,8 +220,31 @@ void bhamCircle(Point p, int r, Color c)
 	//glEnd();
 }
 
-CVec4f projectZ(float fFocus, CVec4f pView)
-{
+CMat4f rotx(float angle) {
+	float r[4][4] = {{1,0,0,0},
+					{0,cos(angle),-sin(angle),0},
+					{0,sin(angle), cos(angle),0},
+					{0,0,0,1}};
+	return CMat4f(r);
+}
+
+CMat4f roty(float angle) {
+	float r[4][4] = {{cos(angle),0,sin(angle),0},
+					 {0,1,0,0},
+					 {-sin(angle),0,cos(angle),0},
+					 {0,0,0,1}};
+	return CMat4f(r);
+}
+
+CMat4f rotz(float angle) {
+	float r[4][4] = {{cos(angle), -sin(angle), 0, 0},
+					{sin(angle), cos(angle),0,0},
+					{0,0,1,0},
+					{0,0,0,1}};
+	return CMat4f(r);
+}
+
+CVec4f projectZ(float fFocus, CVec4f pView) {
 	float x = pView.get(0);
 	float y = pView.get(1);
 	float z = pView.get(2);
@@ -211,7 +254,7 @@ CVec4f projectZ(float fFocus, CVec4f pView)
 	float yn = y * k;
 
 	CVec4f pNew;
-	float pNewArr[4] = {xn, yn, 0, 1};
+	float pNewArr[4] = {xn, yn, z, 1};
 	pNew.setData(pNewArr);
 	return pNew;
 
@@ -221,7 +264,43 @@ void drawProjektedZ(CVec4f points[8], Color c) {
 	for (int i = 0; i < 8; i++) {
 		Points[i] = Point(points[i]);
 	}
-	bhamLine(Points[0], Points[1], c);
+	if (points[0](2) >= 1 && points[1](2) >= 1) {
+		bhamLine(Points[0], Points[1], c);
+	}
+	if (points[0](2) >= 1 && points[3](2) >= 1) {
+		bhamLine(Points[0], Points[3], c);
+	}
+	if (points[0](2) >= 1 && points[4](2) >= 1) {
+		bhamLine(Points[0], Points[4], c);
+	}
+	if (points[1](2) >= 1 && points[2](2) >= 1) {
+		bhamLine(Points[1], Points[2], c);
+	}
+	if (points[1](2) >= 1 && points[5](2) >= 1) {
+		bhamLine(Points[1], Points[5], c);
+	}
+	if (points[2](2) >= 1 && points[3](2) >= 1) {
+		bhamLine(Points[2], Points[3], c);
+	}
+	if (points[2](2) >= 1 && points[6](2) >= 1) {
+		bhamLine(Points[2], Points[6], c);
+	}
+	if (points[3](2) >= 1 && points[7](2) >= 1) {
+		bhamLine(Points[3], Points[7], c);
+	}
+	if (points[4](2) >= 1 && points[5](2) >= 1) {
+		bhamLine(Points[4], Points[5], c);
+	}
+	if (points[4](2) >= 1 && points[7](2) >= 1) {
+		bhamLine(Points[4], Points[7], c);
+	}
+	if (points[5](2) >= 1 && points[6](2) >= 1) {
+		bhamLine(Points[5], Points[6], c);
+	}
+	if (points[6](2) >= 1 && points[7](2) >= 1) {
+		bhamLine(Points[6], Points[7], c);
+	}
+	/*bhamLine(Points[0], Points[1], c);
 	bhamLine(Points[0], Points[3], c);
 	bhamLine(Points[0], Points[4], c);
 	bhamLine(Points[1], Points[2], c);
@@ -232,7 +311,7 @@ void drawProjektedZ(CVec4f points[8], Color c) {
 	bhamLine(Points[4], Points[5], c);
 	bhamLine(Points[4], Points[7], c);
 	bhamLine(Points[5], Points[6], c);
-	bhamLine(Points[6], Points[7], c);
+	bhamLine(Points[6], Points[7], c);*/
 }
 
 CVec4f projectZallg(CMat4f matTransf, float fFocus, CVec4f pWorld) {
@@ -240,14 +319,49 @@ CVec4f projectZallg(CMat4f matTransf, float fFocus, CVec4f pWorld) {
 	return projectZ(fFocus, pView);
 }
 
-CMat4f getTransform(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp)
-{
+CMat4f getTransform(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp) {
+	CVec4f ViewLeft = cross(ViewUp, -ViewDir);
+	/*float rot[4][4] = {{ViewLeft(0), ViewUp(0), -ViewDir(0),0},
+					   {ViewLeft(1), ViewUp(1), -ViewDir(1),0},
+					   {ViewLeft(2), ViewUp(2), -ViewDir(2),0},
+					   {0,0,0,1}};*/
+	float rot[4][4] = {{ViewLeft(0), ViewLeft(1), ViewLeft(2),0},
+					   {ViewUp(0), ViewUp(1), ViewUp(2),0},
+					   {-ViewDir(0), -ViewDir(1), -ViewDir(2),0},
+					   {0,0,0,1}};
+	CMat4f transposed_rot = CMat4f(rot);
+	float t1[4][4] = {{1,0,0,-ViewOrigin(0)},
+					 {0,1,0,-ViewOrigin(1)},
+					 {0,0,1,-ViewOrigin(2)},
+					 {0,0,0,1}};
+	float t2[4][4] = {{1,0,0,ViewOrigin(0)},
+					 {0,1,0,ViewOrigin(1)},
+					 {0,0,1,ViewOrigin(2)},
+					 {0,0,0,1}};
+	CMat4f R = CMat4f(t2)*transposed_rot;
+	/*for (int i = 0; i < 4; i++) {
+		//printf("World %d: %f", i, pWorld.get(i));
+		//printf("View %d: %f", i, pView.get(i));
+		for (int j = 0; j < 4; j++) {
+			printf("Transmat %d %d: %f", i, j, transposed_rot(i,j));
+			//printf("Rot %d %d: %f", i, j, rot[i][j]);
+		}
+	}*/
+	return R;
+}
+CMat4f getTransform2(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp) {
 	CVec4f ViewX = cross(ViewUp, -ViewDir);
-	float rot_trans_arr[4][4] = {{ViewX.get(0), ViewUp.get(0), -ViewDir.get(0), ViewOrigin.get(0)},
-								 {ViewX.get(1), ViewUp.get(1), -ViewDir.get(1), ViewOrigin.get(1)},
-								 {ViewX.get(2), ViewUp.get(2), -ViewDir.get(2), ViewOrigin.get(2)},
+	float trans_arr[4][4] = {{1,0,0,ViewOrigin.get(0)},
+							 {0,1,0,ViewOrigin.get(1)},
+							 {0,0,1,ViewOrigin.get(2)},
+							 {0,0,0,1}};
+	float rot_trans_arr[4][4] = {{ViewX.get(0), ViewUp.get(0), -ViewDir.get(0), -ViewOrigin.get(0)},
+								 {ViewX.get(1), ViewUp.get(1), -ViewDir.get(1), -ViewOrigin.get(1)},
+								 {ViewX.get(2), ViewUp.get(2), -ViewDir.get(2), -ViewOrigin.get(2)},
 								 {0, 0, 0, 1}};
+	CMat4f trans_mat = CMatrix<float, 4>(trans_arr);
 	CMat4f rot_trans_mat = CMatrix<float, 4>(rot_trans_arr);
+	return trans_mat * rot_trans_mat;
 
 /*
 	float rot_trans_arr[4][4] = {{cos(z_angle) * cos(y_angle),
@@ -267,31 +381,6 @@ CMat4f getTransform(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp)
 */
 }
 
-CMat4f transpose(CMat4f mat) {
-	float r_transp[3][3];
-	float t[3];
-	for (int i = 0; i < 3; ++i) {
-		for (int j = 0; j < 3; ++j) {
-			r_transp[i][j] = mat.get(j, i);
-		}
-		t[i] = mat.get(i, 3);
-	}
-	CVec3f t_vec = CVec3f(t);
-	CMat3f r = CMat3f(r_transp);
-	CVec3f t_new_vec = -r * t_vec;
-
-	float rt_arr[4][4];
-	for (int i = 0; i < 3; ++i) {
-		for (int j = 0; j < 3; ++j) {
-			rt_arr[i][j] = r_transp[i][j];
-		}
-		rt_arr[i][3] = t_new_vec.get(i);
-	}
-	rt_arr[3][0] = 0;
-	rt_arr[3][1] = 0;
-	rt_arr[3][2] = 0;
-	rt_arr[3][3] = 1;
-}
 
 //     5------6
 //    /|     /|
@@ -302,49 +391,43 @@ CMat4f transpose(CMat4f mat) {
 void drawQuader(Cuboid cuboid, float fFocus, Color c) {
 	CVec4f points[8];
 	for (int i = 0; i < 8; i++) {
-		points[i] = projectZallg(transpose(getTransform(viewOrigin, viewDir, viewUp)), fFocus, cuboid.get_homogeneous(i));
+		/*CVec4f pWorld = getTransform(viewOrigin, viewDir, viewUp) * cuboid.get_homogeneous(i);
+		points[i] = projectZallg(transpose(getTransform(viewOrigin, viewDir, viewUp)), fFocus, pWorld);*/
+		// points[i] = projectZ(fFocus, cuboid.get_homogeneous(i));
+		points[i] = projectZallg(getTransform(viewOrigin, viewDir, viewUp), fFocus, cuboid.get_homogeneous(i));
 	}
 	drawProjektedZ(points, c);
 }
 
 // function to initialize our own variables
-void init () 
-{
+void init () {
 	// init timer interval
-	g_iTimerMSecs = 10;
+	g_iTimerMSecs = 50;
 
 	// init cuboids for display1
-	fFocus = -1000;
-
-	x_angle = 0;
-	y_angle = 0;
-	z_angle = 0;
-
-	float w_o_arr[3] = {0, 0, 0};
-	WorldOrigin.setData(w_o_arr);
-
-	float o_arr[3] = {0, 0, 0};
-	float d_arr[3] = {0, 0, -1};
-	float u_arr[3] = {0, 1, 0};
-	float l_arr[3] = {1, 0, 0};
+	fFocus = -2000;
+	degree = 5;
+	float o_arr[3] = {0.0, 0.0, 0.0};
+	float d_arr[3] = {0.0, 0.0, -1.0};
+	float u_arr[3] = {0.0, 1.0, 0.0};
+	float l_arr[3] = {1.0, 0.0, 0.0};
 	viewOrigin.setData(o_arr);
 	viewDir.setData(d_arr);
 	viewUp.setData(u_arr);
 	viewLeft.setData(l_arr);
 
-	float e_arr[3] = {0, 0, fFocus};
-	eyePoint.setData(e_arr);
+	/*float e_arr[3] = {0, 0, fFocus};
+	eyePoint.setData(e_arr);*/
 
-	float c1_corner[3] = {-100, -100, 100};
-	cuboid1 = Cuboid(CVec3f(c1_corner), 400);
+	float c1_corner[3] = {-200, -200, 100};
+	cuboid1 = Cuboid(CVec3f(c1_corner), 200);
 
 	// init variables for display2
 	
 }
 
 // function to initialize the view to ortho-projection
-void initGL () 
-{
+void initGL () {
 	glViewport (0, 0, g_iWidth, g_iHeight);	// Establish viewing area to cover entire window.
 
 	glMatrixMode (GL_PROJECTION);			// Start modifying the projection matrix.
@@ -372,8 +455,7 @@ void timer (int value) {
 }
 
 // display callback function
-void display1 (void) 
-{
+void display1 (void) {
 	glClear (GL_COLOR_BUFFER_BIT);
 	drawQuader(cuboid1, fFocus, Color(1,0,0));
 	// In double buffer mode the last
@@ -383,8 +465,7 @@ void display1 (void)
 }
 
 // display callback function
-void display2 (void) 
-{
+void display2 (void) {
 	glClear (GL_COLOR_BUFFER_BIT);
 
 	// In double buffer mode the last
@@ -393,8 +474,7 @@ void display2 (void)
 	glutSwapBuffers (); // swap front and back buffer
 }
 
-void keyboard (unsigned char key, int x, int y) 
-{
+void keyboard (unsigned char key, int x, int y) {
 	switch (key) {
 		case 'q':
 		case 'Q':
@@ -415,22 +495,62 @@ void keyboard (unsigned char key, int x, int y)
 			fFocus -= 10;
 			break;
 		case 'U':
-			viewOrigin.increment(0, 10);
+			viewOrigin.increment(0, 100);
 			break;
 		case 'u':
-			viewOrigin.increment(0, -10);
+			viewOrigin.increment(0, -100);
 			break;
 		case 'V':
-			viewOrigin.increment(1, 10);
+			viewOrigin.increment(1, 100);
 			break;
 		case 'v':
-			viewOrigin.increment(1, -10);
+			viewOrigin.increment(1, -100);
 			break;
 		case 'W':
-			viewOrigin.increment(2, 10);
+			viewOrigin.increment(2, 100);
 			break;
 		case 'w':
-			viewOrigin.increment(2, -10);
+			viewOrigin.increment(2, -100);
+			break;
+		case 'A':
+			viewUp = rotz((2*degree*pi)/360) * viewUp;
+			break;
+		case 'a':
+			viewUp = rotz(-(2*degree*pi)/360) * viewUp;
+			break;
+		case 'B':
+			viewDir = roty((2*degree*pi)/360) * viewDir;
+			break;
+		case 'b':
+			viewDir = roty(-(2*degree*pi)/360) * viewDir;
+			break;
+		case 'C':
+			viewDir = rotx((2*degree*pi)/360) * viewDir;
+			viewUp = rotx((2*degree*pi)/360) * viewUp;
+			break;
+		case 'c':
+			viewDir = rotx(-(2*degree*pi)/360) * viewDir;
+			viewUp = rotx(-(2*degree*pi)/360) * viewUp;
+			break;
+		case 'X':
+			viewOrigin = rotx((2*degree*pi)/360) * viewOrigin;
+			break;
+		case 'x':
+			viewOrigin = rotx(-(2*degree*pi)/360) * viewOrigin;
+			break;
+		case 'Y':
+			viewOrigin = roty((2*degree*pi)/360) * viewOrigin;
+			break;
+		case 'y':
+			viewOrigin = roty(-(2*degree*pi)/360) * viewOrigin;
+			break;
+		case 'Z':
+			viewOrigin = rotz((2*degree*pi)/360) * viewOrigin;
+			break;
+		case 'z':
+			viewOrigin = rotz(-(2*degree*pi)/360) * viewOrigin;
+			break;
+		case 'r':
 			break;
 		default:
 			// do nothing ...
@@ -450,7 +570,7 @@ int main (int argc, char **argv)
 	// we have to use double buffer to avoid flickering
 	// TODO: lookup "double buffer", what is it for, how is it used ...
 	glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGB);
-	glutCreateWindow ("Übung 2");
+	glutCreateWindow ("Uebung 3");
 
 	init ();	// init my variables first
 	initGL ();	// init the GL (i.e. view settings, ...)
