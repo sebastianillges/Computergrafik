@@ -44,6 +44,7 @@ float yMin = -g_iHeight / 2;
 float yMax = g_iHeight / 2;
 
 float fFocus;
+int stride;
 
 class Point
 {
@@ -354,40 +355,40 @@ void drawProjektedZ(CVec4f points[8], Color c) {
 	for (int i = 0; i < 8; i++) {
 		Points[i] = Point(points[i]);
 	}
-	if (points[0](2) >= 1 && points[1](2) >= 1) {
+	if (points[0](2) < 0 || points[1](2) < 0) {
 		bhamLine(Points[0], Points[1], c);
 	}
-	if (points[0](2) >= 1 && points[3](2) >= 1) {
+	if (points[0](2) < 0 || points[3](2) < 0) {
 		bhamLine(Points[0], Points[3], c);
 	}
-	if (points[0](2) >= 1 && points[4](2) >= 1) {
+	if (points[0](2) < 0 || points[4](2) < 0) {
 		bhamLine(Points[0], Points[4], c);
 	}
-	if (points[1](2) >= 1 && points[2](2) >= 1) {
+	if (points[1](2) < 0 || points[2](2) < 0) {
 		bhamLine(Points[1], Points[2], c);
 	}
-	if (points[1](2) >= 1 && points[5](2) >= 1) {
+	if (points[1](2) < 0 || points[5](2) < 0) {
 		bhamLine(Points[1], Points[5], c);
 	}
-	if (points[2](2) >= 1 && points[3](2) >= 1) {
+	if (points[2](2) < 0 || points[3](2) < 0) {
 		bhamLine(Points[2], Points[3], c);
 	}
-	if (points[2](2) >= 1 && points[6](2) >= 1) {
+	if (points[2](2) < 0 || points[6](2) < 0) {
 		bhamLine(Points[2], Points[6], c);
 	}
-	if (points[3](2) >= 1 && points[7](2) >= 1) {
+	if (points[3](2) < 0 || points[7](2) < 0) {
 		bhamLine(Points[3], Points[7], c);
 	}
-	if (points[4](2) >= 1 && points[5](2) >= 1) {
+	if (points[4](2) < 0 || points[5](2) < 0) {
 		bhamLine(Points[4], Points[5], c);
 	}
-	if (points[4](2) >= 1 && points[7](2) >= 1) {
+	if (points[4](2) < 0 || points[7](2) < 0) {
 		bhamLine(Points[4], Points[7], c);
 	}
-	if (points[5](2) >= 1 && points[6](2) >= 1) {
+	if (points[5](2) < 0 || points[6](2) < 0) {
 		bhamLine(Points[5], Points[6], c);
 	}
-	if (points[6](2) >= 1 && points[7](2) >= 1) {
+	if (points[6](2) < 0 || points[7](2) < 0) {
 		bhamLine(Points[6], Points[7], c);
 	}
 	/*bhamLine(Points[0], Points[1], c);
@@ -411,10 +412,6 @@ CVec4f projectZallg(CMat4f matTransf, float fFocus, CVec4f pWorld) {
 
 CMat4f getTransform(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp) {
 	CVec4f ViewLeft = cross(ViewUp, -ViewDir);
-	/*float rot[4][4] = {{ViewLeft(0), ViewUp(0), -ViewDir(0),0},
-					   {ViewLeft(1), ViewUp(1), -ViewDir(1),0},
-					   {ViewLeft(2), ViewUp(2), -ViewDir(2),0},
-					   {0,0,0,1}};*/
 	float rot[4][4] = {{ViewLeft(0), ViewLeft(1), ViewLeft(2),0},
 					   {ViewUp(0), ViewUp(1), ViewUp(2),0},
 					   {-ViewDir(0), -ViewDir(1), -ViewDir(2),0},
@@ -429,14 +426,6 @@ CMat4f getTransform(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp) {
 					 {0,0,1,ViewOrigin(2)},
 					 {0,0,0,1}};
 	CMat4f R = CMat4f(t2)*transposed_rot;
-	/*for (int i = 0; i < 4; i++) {
-		//printf("World %d: %f", i, pWorld.get(i));
-		//printf("View %d: %f", i, pView.get(i));
-		for (int j = 0; j < 4; j++) {
-			printf("Transmat %d %d: %f", i, j, transposed_rot(i,j));
-			//printf("Rot %d %d: %f", i, j, rot[i][j]);
-		}
-	}*/
 	return R;
 }
 CMat4f getTransform2(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp) {
@@ -481,9 +470,6 @@ CMat4f getTransform2(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp) {
 void drawQuader(Cuboid cuboid, float fFocus, Color c) {
 	CVec4f points[8];
 	for (int i = 0; i < 8; i++) {
-		/*CVec4f pWorld = getTransform(viewOrigin, viewDir, viewUp) * cuboid.get_homogeneous(i);
-		points[i] = projectZallg(transpose(getTransform(viewOrigin, viewDir, viewUp)), fFocus, pWorld);*/
-		// points[i] = projectZ(fFocus, cuboid.get_homogeneous(i));
 		points[i] = projectZallg(getTransform(viewOrigin, viewDir, viewUp), fFocus, cuboid.get_homogeneous(i));
 	}
 	drawProjektedZ(points, c);
@@ -495,8 +481,9 @@ void init () {
 	g_iTimerMSecs = 50;
 
 	// init cuboids for display1
-	fFocus = -2000;
+	fFocus = 2000;
 	degree = 5;
+	stride = 10;
 	float o_arr[3] = {0.0, 0.0, 0.0};
 	float d_arr[3] = {0.0, 0.0, -1.0};
 	float u_arr[3] = {0.0, 1.0, 0.0};
@@ -506,10 +493,7 @@ void init () {
 	viewUp.setData(u_arr);
 	viewLeft.setData(l_arr);
 
-	/*float e_arr[3] = {0, 0, fFocus};
-	eyePoint.setData(e_arr);*/
-
-	float c1_corner[3] = {-200, -200, 100};
+	float c1_corner[3] = {-100, -100, -100};
 	cuboid1 = Cuboid(CVec3f(c1_corner), 200);
 
 	// init variables for display2
@@ -581,26 +565,30 @@ void keyboard (unsigned char key, int x, int y) {
 		case 'F':
 			fFocus += 10;
 			break;
-		case 'f':
+		case 'f': {
 			fFocus -= 10;
+			if (fFocus <= 100) {
+				fFocus = 100;
+			}
 			break;
+			}
 		case 'U':
-			viewOrigin.increment(0, 100);
+			viewOrigin.increment(0, stride);
 			break;
 		case 'u':
-			viewOrigin.increment(0, -100);
+			viewOrigin.increment(0, -stride);
 			break;
 		case 'V':
-			viewOrigin.increment(1, 100);
+			viewOrigin.increment(1, stride);
 			break;
 		case 'v':
-			viewOrigin.increment(1, -100);
+			viewOrigin.increment(1, -stride);
 			break;
 		case 'W':
-			viewOrigin.increment(2, 100);
+			viewOrigin.increment(2, stride);
 			break;
 		case 'w':
-			viewOrigin.increment(2, -100);
+			viewOrigin.increment(2, -stride);
 			break;
 		case 'A':
 			viewUp = rotz((2*degree*pi)/360) * viewUp;
@@ -640,8 +628,18 @@ void keyboard (unsigned char key, int x, int y) {
 		case 'z':
 			viewOrigin = rotz(-(2*degree*pi)/360) * viewOrigin;
 			break;
-		case 'r':
+		case 'r': {
+				fFocus = 2000;
+				float o_arr[3] = {0.0, 0.0, 0.0};
+				float d_arr[3] = {0.0, 0.0, -1.0};
+				float u_arr[3] = {0.0, 1.0, 0.0};
+				float l_arr[3] = {1.0, 0.0, 0.0};
+				viewOrigin.setData(o_arr);
+				viewDir.setData(d_arr);
+				viewUp.setData(u_arr);
+				viewLeft.setData(l_arr);
 			break;
+		}
 		default:
 			// do nothing ...
 			break;
