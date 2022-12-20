@@ -1,12 +1,7 @@
-// Sample code for �bung 2
-
 #include <math.h>
 #include "vec.h"
 #include "mat.h"
 #include "cuboid.h"
-
-// might be you have to swith to
-// #include "glut.h" depending on your GLUT installation
 #include "glut.h"
 #include <iostream>
 using namespace std;
@@ -19,8 +14,6 @@ const int g_iHeight = 1080;
 // global variable to tune the timer interval
 int g_iTimerMSecs;
 
-float pi = atan(1) * 4;
-int degree;
 // cuboids
 Cuboid cuboid1;
 Cuboid cuboid2;
@@ -32,6 +25,10 @@ CVec4f viewDir;
 CVec4f viewUp;
 CVec4f viewLeft;
 
+float x_angle;
+float y_angle;
+float z_angle;
+
 // Clipping 
 #define CLIPLEFT  1  // Binär   0001
 #define CLIPRIGHT 2  //         0010
@@ -39,12 +36,15 @@ CVec4f viewLeft;
 #define CLIPUPPER 8  //         1000
 
 float xMin = -g_iWidth / 2;
-float xMax = g_iWidth / 2;
+float xMax = (g_iWidth / 2) - 1;
 float yMin = -g_iHeight / 2;
-float yMax = g_iHeight / 2;
+float yMax = (g_iHeight / 2) - 1;
 
+CMat4f transf_mat;
 float fFocus;
 int stride;
+float pi = atan(1) * 4;
+int degree;
 
 class Point
 {
@@ -96,6 +96,14 @@ CVec4f homogenize(CVec3f cvec)
 {
 	float atData[4] = {cvec.get(0), cvec.get(1), cvec.get(2), 1};
 	return CVec4f(atData);
+}
+
+CMat4f trans(CVec4f t) {
+	float arr[4][4] = {{1,0,0,t.get(0)},
+					   {0,1,0,t.get(1)},
+					   {0,0,1,t.get(2)},
+					   {0,0,0,1}};
+	return CMat4f(arr);
 }
 
 CMat4f transpose(CMat4f mat) {
@@ -254,62 +262,6 @@ void bhamLine(Point p1, Point p2, Color c)
 		}
 	glEnd();
 }
-void bhamCircle(Point p, int r, Color c)
-{
-  // Mittelpunkt
-	glBegin(GL_POINTS);
-		glColor3f(c.r,c.g,c.b);
-		glVertex2i(p.x, p.y);
-		//colormap.insert({p.x*g_iHeight+p.y, c});
-    glEnd();
-
-		int x, y, d, dSE, dE, trueX, trueY;
-
-		trueX = p.x;
-		trueY = p.y;
-		x = 0;
-		y = r;
-		d = 5 - 4 * r;
-    glBegin(GL_LINES);
-    glVertex2i(x+trueX, y+trueY);
-		glVertex2i(y+trueX, x+trueY);
-    glEnd();
-    glBegin(GL_LINES);
-    glVertex2i(x+trueX, y+trueY);
-    glVertex2i(-y+trueX, -x+trueY);
-    glEnd();
-
-		while (y > x) {
-			if (d >= 0) {
-				dSE =  4 * (2 * (x - y) + 5);
-				d += dSE;
-				x++;
-				y--;
-			}
-			else {
-				dE = 4 * (2 * x + 3);
-				d += dE;
-				x++;
-			}
-      glBegin(GL_LINES);
-			glVertex2i(-y+trueX, x+trueY);
-			glVertex2i(y+trueX, -x+trueY);
-      glEnd();
-      glBegin(GL_LINES);
-			glVertex2i(-x+trueX, y+trueY);
-			glVertex2i(x+trueX, -y+trueY);
-      glEnd();
-      glBegin(GL_LINES);
-        glVertex2i(y+trueX, x+trueY);
-        glVertex2i(-y+trueX, -x+trueY);
-      glEnd();
-      glBegin(GL_LINES);
-        glVertex2i(x+trueX, y+trueY);
-        glVertex2i(-x+trueX, -y+trueY);
-      glEnd();
-		}
-	//glEnd();
-}
 
 CMat4f rotx(float angle) {
 	float r[4][4] = {{1,0,0,0},
@@ -404,7 +356,13 @@ void drawProjektedZ(CVec4f points[8], Color c) {
 	bhamLine(Points[5], Points[6], c);
 	bhamLine(Points[6], Points[7], c);*/
 }
-
+void drawProjektedZ(CVec4f point1, CVec4f point2, Color c) {
+	Point p1 = Point(point1);
+	Point p2 = Point(point2);
+	if (point1(0) < 0 || point2(0) < 0) {
+		bhamLine(p1, p2, c);
+	}
+}
 CVec4f projectZallg(CMat4f matTransf, float fFocus, CVec4f pWorld) {
 	CVec4f pView = matTransf * pWorld;
 	return projectZ(fFocus, pView);
@@ -421,28 +379,10 @@ CMat4f getTransform(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp) {
 					 {0,1,0,-ViewOrigin(1)},
 					 {0,0,1,-ViewOrigin(2)},
 					 {0,0,0,1}};
-	float t2[4][4] = {{1,0,0,ViewOrigin(0)},
-					 {0,1,0,ViewOrigin(1)},
-					 {0,0,1,ViewOrigin(2)},
-					 {0,0,0,1}};
-	CMat4f R = CMat4f(t2)*transposed_rot;
+	CMat4f R = transposed_rot*CMat4f(t1);
 	return R;
 }
 CMat4f getTransform2(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp) {
-	CVec4f ViewX = cross(ViewUp, -ViewDir);
-	float trans_arr[4][4] = {{1,0,0,ViewOrigin.get(0)},
-							 {0,1,0,ViewOrigin.get(1)},
-							 {0,0,1,ViewOrigin.get(2)},
-							 {0,0,0,1}};
-	float rot_trans_arr[4][4] = {{ViewX.get(0), ViewUp.get(0), -ViewDir.get(0), -ViewOrigin.get(0)},
-								 {ViewX.get(1), ViewUp.get(1), -ViewDir.get(1), -ViewOrigin.get(1)},
-								 {ViewX.get(2), ViewUp.get(2), -ViewDir.get(2), -ViewOrigin.get(2)},
-								 {0, 0, 0, 1}};
-	CMat4f trans_mat = CMatrix<float, 4>(trans_arr);
-	CMat4f rot_trans_mat = CMatrix<float, 4>(rot_trans_arr);
-	return trans_mat * rot_trans_mat;
-
-/*
 	float rot_trans_arr[4][4] = {{cos(z_angle) * cos(y_angle),
 							cos(z_angle) * sin(y_angle) * sin(x_angle) - sin(z_angle) * cos(x_angle),
 							cos(z_angle) * sin(y_angle) * cos(x_angle) + sin(z_angle) * sin(x_angle),
@@ -457,9 +397,8 @@ CMat4f getTransform2(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp) {
 							ViewOrigin.get(2)},
 							{0, 0, 0, 1}};
 	CMat4f rot_trans_mat = CMatrix<float, 4>(rot_trans_arr);
-*/
+	return rot_trans_mat;
 }
-
 
 //     5------6
 //    /|     /|
@@ -484,16 +423,16 @@ void init () {
 	fFocus = 2000;
 	degree = 5;
 	stride = 10;
-	float o_arr[3] = {0.0, 0.0, 0.0};
-	float d_arr[3] = {0.0, 0.0, -1.0};
-	float u_arr[3] = {0.0, 1.0, 0.0};
-	float l_arr[3] = {1.0, 0.0, 0.0};
+	float o_arr[4] = {0.0, 0.0, 0.0, 1.0};
+	float d_arr[4] = {0.0, 0.0, -1.0, 1.0};
+	float u_arr[4] = {0.0, 1.0, 0.0, 1.0};
+	float l_arr[4] = {1.0, 0.0, 0.0, 1.0};
 	viewOrigin.setData(o_arr);
 	viewDir.setData(d_arr);
 	viewUp.setData(u_arr);
 	viewLeft.setData(l_arr);
 
-	float c1_corner[3] = {-100, -100, -100};
+	float c1_corner[3] = {0, 0, 0};
 	cuboid1 = Cuboid(CVec3f(c1_corner), 200);
 
 	// init variables for display2
@@ -532,6 +471,21 @@ void timer (int value) {
 void display1 (void) {
 	glClear (GL_COLOR_BUFFER_BIT);
 	drawQuader(cuboid1, fFocus, Color(1,0,0));
+	float a_o[4] = {0,0,0,1};
+	float a_x[4] = {100,0,0,1};
+	float a_y[4] = {0,100,0,1};
+	float a_z[4] = {0,0,100,1};
+	CMat4f transform_mat = getTransform(viewOrigin, viewDir, viewUp);
+	CVec4f origin = projectZallg(transform_mat, fFocus, CVec4f(a_o));
+	CVec4f axis_x = projectZallg(transform_mat, fFocus, CVec4f(a_x));
+	CVec4f axis_y = projectZallg(transform_mat, fFocus, CVec4f(a_y));
+	CVec4f axis_z = projectZallg(transform_mat, fFocus, CVec4f(a_z));
+	Color green = Color(0,1,0);
+	Color blue = Color(0,0,1);
+	Color yellow = Color(1,1,0);
+	drawProjektedZ(origin, axis_x, green);
+	drawProjektedZ(origin, axis_y, blue);
+	drawProjektedZ(origin, axis_z, yellow);
 	// In double buffer mode the last
 	// two lines should alsways be
 	glFlush ();
@@ -629,15 +583,13 @@ void keyboard (unsigned char key, int x, int y) {
 			viewOrigin = rotz(-(2*degree*pi)/360) * viewOrigin;
 			break;
 		case 'r': {
-				fFocus = 2000;
+				fFocus = 1000;
 				float o_arr[3] = {0.0, 0.0, 0.0};
 				float d_arr[3] = {0.0, 0.0, -1.0};
 				float u_arr[3] = {0.0, 1.0, 0.0};
-				float l_arr[3] = {1.0, 0.0, 0.0};
 				viewOrigin.setData(o_arr);
 				viewDir.setData(d_arr);
 				viewUp.setData(u_arr);
-				viewLeft.setData(l_arr);
 			break;
 		}
 		default:
