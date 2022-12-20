@@ -248,9 +248,13 @@ void drawProjektedZ(CVec4f points[8], Color c) {
 	bhamLine(Points[6], Points[7], c);*/
 }
 
-CVec4f projectZallg(CVec4f pWorld) {
-	CVec4f pView = base_change_mat * trans(-viewOrigin) * pWorld;
-	return projectZ(pView);
+
+CMat4f getTransform(CVec4f ViewOrigin, CVec4f ViewDir,CVec4f ViewUp) {
+	float rot[4][4] = {{viewLeft(0), viewUp(0), -viewDir(0), 0},
+					   {viewLeft(1), viewUp(1), -viewDir(1), 0},
+					   {viewLeft(2), viewUp(2), -viewDir(2), 0},
+					   {0,0,0,1}};
+	return CMat4f(rot);
 }
 
 CMat4f baseChange() {
@@ -259,6 +263,11 @@ CMat4f baseChange() {
 					   {viewLeft(2), viewUp(2), -viewDir(2), 0},
 					   {0,0,0,1}};
 	return transpose(CMat4f(rot));
+}
+
+CVec4f projectZallg(CVec4f pWorld) {
+	CVec4f pView = transpose(getTransform(viewOrigin, viewDir, viewUp)) * trans(-viewOrigin) * pWorld;
+	return projectZ(pView);
 }
 
 //     5------6
