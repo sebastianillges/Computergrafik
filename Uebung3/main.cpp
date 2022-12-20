@@ -108,10 +108,12 @@ CMat4f trans(CVec4f t) {
 
 CMat4f transpose(CMat4f mat) {
 	float r_transp[3][3];
+	float r_transp_negated[3][3];
 	float t[3];
 	for (int i = 0; i < 3; ++i) {
 		for (int j = 0; j < 3; ++j) {
 			r_transp[i][j] = mat.get(j, i);
+			r_transp_negated[i][j] = -mat.get(j, i);
 		}
 		t[i] = mat.get(i, 3);
 	}
@@ -130,6 +132,7 @@ CMat4f transpose(CMat4f mat) {
 	rt_arr[3][1] = 0;
 	rt_arr[3][2] = 0;
 	rt_arr[3][3] = 1;
+	return CMat4f(rt_arr);
 }
 
 /*
@@ -383,15 +386,24 @@ void drawProjektedZ(CVec4f point1, CVec4f point2, Color c) {
 	}
 }
 CVec4f projectZallg(CMat4f matTransf, float fFocus, CVec4f pWorld) {
-	CVec4f pView = matTransf * pWorld;
+	CVec4f pView = matTransf * trans(-viewOrigin) * pWorld;
 	return projectZ(fFocus, pView);
 }
 
 CMat4f getTransform(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp) {
 	CVec4f ViewLeft = cross(ViewUp, -ViewDir);
-	float rot[4][4] = {{ViewLeft(0), ViewLeft(1), ViewLeft(2),0},
-					   {ViewUp(0), ViewUp(1), ViewUp(2),0},
-					   {-ViewDir(0), -ViewDir(1), -ViewDir(2),0},
+	float rot[4][4] = {{ViewLeft(0), ViewUp(0), -ViewDir(0), 0},
+					   {ViewLeft(1), ViewUp(1), -ViewDir(1), 0},
+					   {ViewLeft(2), ViewUp(2), -ViewDir(2), 0},
+					   {0,0,0,1}};
+	CMat4f rot_mat = CMat4f(rot);
+	return rot_mat;
+}
+CMat4f getTransform3(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp) {
+	CVec4f ViewLeft = cross(ViewUp, -ViewDir);
+	float rot[4][4] = {{ViewLeft(0), ViewLeft(1), ViewLeft(2), 0},
+					   {ViewUp(0), ViewUp(1), ViewUp(2), 0},
+					   {-ViewDir(0), -ViewDir(1), -ViewDir(2), 0},
 					   {0,0,0,1}};
 	CMat4f transposed_rot = CMat4f(rot);
 	float t1[4][4] = {{1,0,0,-ViewOrigin(0)},
@@ -428,9 +440,29 @@ CMat4f getTransform2(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp) {
 void drawQuader(Cuboid cuboid, float fFocus, Color c) {
 	CVec4f points[8];
 	for (int i = 0; i < 8; i++) {
-		points[i] = projectZallg(getTransform(viewOrigin, viewDir, viewUp), fFocus, cuboid.get_homogeneous(i));
+		points[i] = projectZallg(transpose(getTransform(viewOrigin, viewDir, viewUp)), fFocus, cuboid.get_homogeneous(i));
 	}
 	drawProjektedZ(points, c);
+}
+
+CVec4f rotate_axis(CVec4f rot_axis, CVec4f axis, float angle) {
+	angle = 2*pi*angle / 360;
+	float a = axis.get(0);
+	float b = axis.get(1);
+	float c = axis.get(2);
+	float d = sqrt(pow(b,2)+pow(c,2));
+	float alpha = acos(c/d);
+	//float alpha = atan2(b, c);
+	CMat4f rot_x = rotx(alpha);
+	CVec4f rot_axis_2 = rot_x * rot_axis;
+	d = rot_axis_2.get(2);
+	float beta = acos(d);
+	//float beta = atan2(rot_axis_2.get(2), rot_axis_2.get(0));
+	CMat4f rot_y = roty(beta);
+	CMat4f rot_z = rotz(angle);
+	CMat4f rot_x_trans = rotx(-alpha);
+	CMat4f rot_y_trans = roty(-beta);
+	return rot_x_trans * rot_y_trans * rot_z * rot_y * rot_x * axis;
 }
 
 // function to initialize our own variables
@@ -453,6 +485,8 @@ void init () {
 
 	float c1_corner[3] = {0, 0, 0};
 	cuboid1 = Cuboid(CVec3f(c1_corner), 200);
+	float c2_corner[3] = {-100, -100, 100};
+	cuboid2 = Cuboid(CVec3f(c2_corner), 100);
 
 	// init variables for display2
 	
@@ -490,6 +524,7 @@ void timer (int value) {
 void display1 (void) {
 	glClear (GL_COLOR_BUFFER_BIT);
 	drawQuader(cuboid1, fFocus, Color(1,0,0));
+	drawQuader(cuboid2, fFocus, Color());
 	/*float a_o[4] = {0,0,0,1};
 	float a_x[4] = {100,0,0,1};
 	float a_y[4] = {0,100,0,1};
@@ -522,7 +557,6 @@ void display2 (void) {
 }
 
 void keyboard (unsigned char key, int x, int y) {
-	glutPostRedisplay ();
 	switch (key) {
 		case 'q':
 		case 'Q':
@@ -565,24 +599,40 @@ void keyboard (unsigned char key, int x, int y) {
 			viewOrigin.increment(2, -stride);
 			break;
 		case 'A':
-			viewUp = rotz((2*degree*pi)/360) * viewUp;
+			if (viewUp.get(0) != 0 || viewUp.get(1) != 1 || viewUp.get(2) != 0) {
+				printf("before: %f %f %f\n", viewUp.get(0), viewUp.get(1), viewUp.get(2));
+				viewUp = rotate_axis(-viewDir, viewUp, degree);
+				printf("after: %f %f %f\n", viewUp.get(0), viewUp.get(1), viewUp.get(2));
+			} else {
+				viewUp = rotz((2*degree*pi)/360) * viewUp;
+			}
+			//
 			break;
 		case 'a':
-			viewUp = rotz(-(2*degree*pi)/360) * viewUp;
+			printf("before: %f %f %f\n", viewUp.get(0), viewUp.get(1), viewUp.get(2));
+			viewUp = rotate_axis(-viewDir, viewUp, -degree);
+			printf("after: %f %f %f\n", viewUp.get(0), viewUp.get(1), viewUp.get(2));
+			//viewUp = rotz(-(2*degree*pi)/360) * viewUp;
 			break;
 		case 'B':
-			viewDir = roty((2*degree*pi)/360) * viewDir;
+			viewDir = rotate_axis(viewUp, viewDir, degree);
+			//viewDir = roty((2*degree*pi)/360) * viewDir;
 			break;
 		case 'b':
-			viewDir = roty(-(2*degree*pi)/360) * viewDir;
+			viewDir = rotate_axis(viewUp, viewDir, -degree);
+			//viewDir = roty(-(2*degree*pi)/360) * viewDir;
 			break;
 		case 'C':
-			viewDir = rotx((2*degree*pi)/360) * viewDir;
-			viewUp = rotx((2*degree*pi)/360) * viewUp;
+			viewUp = rotate_axis(cross(viewUp, -viewDir), viewUp, degree);
+			viewDir = rotate_axis(cross(viewUp, -viewDir), viewDir, degree);
+			//viewDir = rotx((2*degree*pi)/360) * viewDir;
+			//viewUp = rotx((2*degree*pi)/360) * viewUp;
 			break;
 		case 'c':
-			viewDir = rotx(-(2*degree*pi)/360) * viewDir;
-			viewUp = rotx(-(2*degree*pi)/360) * viewUp;
+			viewUp = rotate_axis(cross(viewUp, -viewDir), viewUp, -degree);
+			viewDir = rotate_axis(cross(viewUp, -viewDir), viewDir, -degree);
+			//viewDir = rotx(-(2*degree*pi)/360) * viewDir;
+			//viewUp = rotx(-(2*degree*pi)/360) * viewUp;
 			break;
 		case 'X':
 			viewOrigin = rotx((2*degree*pi)/360) * viewOrigin;
@@ -616,6 +666,7 @@ void keyboard (unsigned char key, int x, int y) {
 			// do nothing ...
 			break;
 	};
+	glutPostRedisplay ();
 }
 
 void resize(int width, int height) {
