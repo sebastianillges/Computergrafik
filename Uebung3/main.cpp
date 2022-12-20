@@ -3,6 +3,7 @@
 #include "mat.h"
 #include "cuboid.h"
 #include "glut.h"
+#include "utility.h"
 #include <iostream>
 using namespace std;
 
@@ -25,10 +26,6 @@ CVec4f viewDir;
 CVec4f viewUp;
 CVec4f viewLeft;
 
-float x_angle;
-float y_angle;
-float z_angle;
-
 // Clipping 
 #define CLIPLEFT  1  // Binär   0001
 #define CLIPRIGHT 2  //         0010
@@ -40,107 +37,12 @@ float xMax = (g_iWidth / 2) - 1;
 float yMin = -g_iHeight / 2;
 float yMax = (g_iHeight / 2) - 1;
 
-CMat4f transf_mat;
+CMat4f base_change_mat;
 float fFocus;
 int stride;
 float pi = atan(1) * 4;
-int degree;
-
-class Point
-{
-public:
-	Point(int x = 0, int y = 0)
-	{
-		this->x = x;
-		this->y = y;
-	}
-	Point(CVec3f cvec) {
-		this->x = (int) cvec.get(0);
-		this->y = (int) cvec.get(1);
-	}
-	Point(CVec4f cvec) {
-		this->x = (int) cvec.get(0);
-		this->y = (int) cvec.get(1);
-	}
-	bool operator() (const Point& lhs, const Point& rhs) const
-   	{
-       return lhs.x < rhs.x;
-   	}
-	int x, y;
-};
-class Color
-{
-public:
-	Color(float r = 1.0f, float g = 1.0f, float b = 1.0f)
-	{
-		this->r = r;
-		this->g = g;
-		this->b = b;
-	}
-	bool equals(Color c) {
-		return (this->r == c.r && this->g == c.g && this->b == c.b);
-	}
-	float r, g, b;
-};
-
-CVec4f cross(CVec4f v1, CVec4f v2) {
-	float atData[4];
-	atData[3] = 1;
-	atData[0] = v1.get(1)*v2.get(2) - v1.get(2)*v2.get(1);
-	atData[1] = v1.get(2)*v2.get(0) - v1.get(0)*v2.get(2);
-	atData[2] = v1.get(0)*v2.get(1) - v1.get(1)*v2.get(0);
-	return CVec4f(atData);
-}
-
-CVec4f homogenize(CVec3f cvec)
-{
-	float atData[4] = {cvec.get(0), cvec.get(1), cvec.get(2), 1};
-	return CVec4f(atData);
-}
-
-CMat4f trans(CVec4f t) {
-	float arr[4][4] = {{1,0,0,t.get(0)},
-					   {0,1,0,t.get(1)},
-					   {0,0,1,t.get(2)},
-					   {0,0,0,1}};
-	return CMat4f(arr);
-}
-
-CMat4f transpose(CMat4f mat) {
-	float r_transp[3][3];
-	float r_transp_negated[3][3];
-	float t[3];
-	for (int i = 0; i < 3; ++i) {
-		for (int j = 0; j < 3; ++j) {
-			r_transp[i][j] = mat.get(j, i);
-			r_transp_negated[i][j] = -mat.get(j, i);
-		}
-		t[i] = mat.get(i, 3);
-	}
-	CVec3f t_vec = CVec3f(t);
-	CMat3f r = CMat3f(r_transp);
-	CVec3f t_new_vec = -r * t_vec;
-
-	float rt_arr[4][4];
-	for (int i = 0; i < 3; ++i) {
-		for (int j = 0; j < 3; ++j) {
-			rt_arr[i][j] = r_transp[i][j];
-		}
-		rt_arr[i][3] = t_new_vec.get(i);
-	}
-	rt_arr[3][0] = 0;
-	rt_arr[3][1] = 0;
-	rt_arr[3][2] = 0;
-	rt_arr[3][3] = 1;
-	return CMat4f(rt_arr);
-}
-
-/*
-#define CLIPLEFT  1  // Binär   0001
-#define CLIPRIGHT 2  //         0010
-#define CLIPLOWER 4  //         0100
-#define CLIPUPPER 8  //         1000
-*/
+float angle_deg;
+float angle_rad;
 
 void clipLine(Point &p1, Point &p2) {
 	int delta_X = p2.x - p1.x;
@@ -282,31 +184,7 @@ void bhamLine(Point p1, Point p2, Color c)
 	glEnd();
 }
 
-CMat4f rotx(float angle) {
-	float r[4][4] = {{1,0,0,0},
-					{0,cos(angle),-sin(angle),0},
-					{0,sin(angle), cos(angle),0},
-					{0,0,0,1}};
-	return CMat4f(r);
-}
-
-CMat4f roty(float angle) {
-	float r[4][4] = {{cos(angle),0,sin(angle),0},
-					 {0,1,0,0},
-					 {-sin(angle),0,cos(angle),0},
-					 {0,0,0,1}};
-	return CMat4f(r);
-}
-
-CMat4f rotz(float angle) {
-	float r[4][4] = {{cos(angle), -sin(angle), 0, 0},
-					{sin(angle), cos(angle),0,0},
-					{0,0,1,0},
-					{0,0,0,1}};
-	return CMat4f(r);
-}
-
-CVec4f projectZ(float fFocus, CVec4f pView) {
+CVec4f projectZ(CVec4f pView) {
 	float x = pView.get(0);
 	float y = pView.get(1);
 	float z = pView.get(2);
@@ -324,6 +202,7 @@ CVec4f projectZ(float fFocus, CVec4f pView) {
 	return pNew;
 
 }
+
 void drawProjektedZ(CVec4f points[8], Color c) {
 	Point Points[8];
 	for (int i = 0; i < 8; i++) {
@@ -378,57 +257,18 @@ void drawProjektedZ(CVec4f points[8], Color c) {
 	bhamLine(Points[5], Points[6], c);
 	bhamLine(Points[6], Points[7], c);*/
 }
-void drawProjektedZ(CVec4f point1, CVec4f point2, Color c) {
-	Point p1 = Point(point1);
-	Point p2 = Point(point2);
-	if (point1(0) < 0 || point2(0) < 0) {
-		bhamLine(p1, p2, c);
-	}
-}
-CVec4f projectZallg(CMat4f matTransf, float fFocus, CVec4f pWorld) {
-	CVec4f pView = matTransf * trans(-viewOrigin) * pWorld;
-	return projectZ(fFocus, pView);
+
+CVec4f projectZallg(CVec4f pWorld) {
+	CVec4f pView = base_change_mat * trans(-viewOrigin) * pWorld;
+	return projectZ(pView);
 }
 
-CMat4f getTransform(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp) {
-	CVec4f ViewLeft = cross(ViewUp, -ViewDir);
-	float rot[4][4] = {{ViewLeft(0), ViewUp(0), -ViewDir(0), 0},
-					   {ViewLeft(1), ViewUp(1), -ViewDir(1), 0},
-					   {ViewLeft(2), ViewUp(2), -ViewDir(2), 0},
+CMat4f baseChange() {
+	float rot[4][4] = {{viewLeft(0), viewUp(0), -viewDir(0), 0},
+					   {viewLeft(1), viewUp(1), -viewDir(1), 0},
+					   {viewLeft(2), viewUp(2), -viewDir(2), 0},
 					   {0,0,0,1}};
-	CMat4f rot_mat = CMat4f(rot);
-	return rot_mat;
-}
-CMat4f getTransform3(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp) {
-	CVec4f ViewLeft = cross(ViewUp, -ViewDir);
-	float rot[4][4] = {{ViewLeft(0), ViewLeft(1), ViewLeft(2), 0},
-					   {ViewUp(0), ViewUp(1), ViewUp(2), 0},
-					   {-ViewDir(0), -ViewDir(1), -ViewDir(2), 0},
-					   {0,0,0,1}};
-	CMat4f transposed_rot = CMat4f(rot);
-	float t1[4][4] = {{1,0,0,-ViewOrigin(0)},
-					 {0,1,0,-ViewOrigin(1)},
-					 {0,0,1,-ViewOrigin(2)},
-					 {0,0,0,1}};
-	CMat4f R = transposed_rot*CMat4f(t1);
-	return R;
-}
-CMat4f getTransform2(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp) {
-	float rot_trans_arr[4][4] = {{cos(z_angle) * cos(y_angle),
-							cos(z_angle) * sin(y_angle) * sin(x_angle) - sin(z_angle) * cos(x_angle),
-							cos(z_angle) * sin(y_angle) * cos(x_angle) + sin(z_angle) * sin(x_angle),
-							ViewOrigin.get(0)},
-							{sin(z_angle) * cos(y_angle),
-							sin(z_angle) * sin(y_angle) * sin(x_angle) + cos(z_angle) * cos(x_angle),
-							sin(z_angle) * sin(y_angle) * cos(x_angle) - cos(z_angle) * sin(x_angle),
-							ViewOrigin.get(1)},
-							{-sin(y_angle),
-							cos(y_angle) * sin(x_angle),
-							cos(y_angle) * cos(x_angle),
-							ViewOrigin.get(2)},
-							{0, 0, 0, 1}};
-	CMat4f rot_trans_mat = CMatrix<float, 4>(rot_trans_arr);
-	return rot_trans_mat;
+	return transpose(CMat4f(rot));
 }
 
 //     5------6
@@ -440,29 +280,31 @@ CMat4f getTransform2(CVec4f ViewOrigin, CVec4f ViewDir, CVec4f ViewUp) {
 void drawQuader(Cuboid cuboid, float fFocus, Color c) {
 	CVec4f points[8];
 	for (int i = 0; i < 8; i++) {
-		points[i] = projectZallg(transpose(getTransform(viewOrigin, viewDir, viewUp)), fFocus, cuboid.get_homogeneous(i));
+		points[i] = projectZallg(cuboid.corners[i]);
 	}
 	drawProjektedZ(points, c);
 }
 
-CVec4f rotate_axis(CVec4f rot_axis, CVec4f axis, float angle) {
-	angle = 2*pi*angle / 360;
-	float a = axis.get(0);
-	float b = axis.get(1);
-	float c = axis.get(2);
-	float d = sqrt(pow(b,2)+pow(c,2));
-	float alpha = acos(c/d);
-	//float alpha = atan2(b, c);
-	CMat4f rot_x = rotx(alpha);
-	CVec4f rot_axis_2 = rot_x * rot_axis;
-	d = rot_axis_2.get(2);
-	float beta = acos(d);
-	//float beta = atan2(rot_axis_2.get(2), rot_axis_2.get(0));
-	CMat4f rot_y = roty(beta);
-	CMat4f rot_z = rotz(angle);
-	CMat4f rot_x_trans = rotx(-alpha);
-	CMat4f rot_y_trans = roty(-beta);
-	return rot_x_trans * rot_y_trans * rot_z * rot_y * rot_x * axis;
+CMat4f rotate_axis(CVec4f rot_axis, float angle) {
+	float x = rot_axis(0);
+	float y = rot_axis(1);
+	float z = rot_axis(2);
+	float c = cos(angle);
+	float s = sin(angle);
+	float a00 = c + pow(x,2) * (1 - c);
+	float a01 = x * y * (1 - c) - z * s;
+	float a02 = x * z * (1 - c) + y * s;
+	float a10 = y * x * (1 - c) + z * s;
+	float a11 = c + pow(y, 2) * (1 - c);
+	float a12 = y * z * (1 - c) - x * s;
+	float a20 = z * x * (1 - c) - y * s;
+	float a21 = z * y * (1 - c) + x * s;
+	float a22 = c + pow(z, 2)  * (1 - c);
+	float arr[4][4] = {{a00, a01, a02, 0},
+					   {a10, a11, a12, 0},
+					   {a20, a21, a22, 0},
+					   {0, 0, 0, 1}};
+	return CMat4f(arr);
 }
 
 // function to initialize our own variables
@@ -470,9 +312,9 @@ void init () {
 	// init timer interval
 	g_iTimerMSecs = 50;
 
-	// init cuboids for display1
 	fFocus = 2000;
-	degree = 5;
+	angle_deg = 5;
+	angle_rad = angle_deg * 2 * pi / 360;
 	stride = 10;
 	float o_arr[4] = {0.0, 0.0, 0.0, 1.0};
 	float d_arr[4] = {0.0, 0.0, -1.0, 1.0};
@@ -482,13 +324,14 @@ void init () {
 	viewDir.setData(d_arr);
 	viewUp.setData(u_arr);
 	viewLeft.setData(l_arr);
+	base_change_mat = baseChange();
 
-	float c1_corner[3] = {0, 0, 0};
-	cuboid1 = Cuboid(CVec3f(c1_corner), 200);
-	float c2_corner[3] = {-100, -100, 100};
-	cuboid2 = Cuboid(CVec3f(c2_corner), 100);
+	float c1_corner[4] = {0, 0, 0, 1};
+	cuboid1 = Cuboid(CVec4f(c1_corner), 200);
+	float c2_corner[4] = {-100, -100, 100, 1};
+	cuboid2 = Cuboid(CVec4f(c2_corner), 100);
 
-	// init variables for display2
+	
 	
 }
 
@@ -508,50 +351,13 @@ void initGL () {
 	glClearColor (0,0,0,1);
 }
 
-// int min (int a, int b) { return a>b? a: b; }
-// timer callback function
-void timer (int value) {
-	// variables for display1 ...
-
-	// variables for display2 ...
-
-	// the last two lines should always be
-	glutPostRedisplay ();
-	glutTimerFunc (g_iTimerMSecs, timer, 0);	// call timer for next iteration
-}
-
 // display callback function
-void display1 (void) {
+void display (void) {
 	glClear (GL_COLOR_BUFFER_BIT);
 	drawQuader(cuboid1, fFocus, Color(1,0,0));
-	drawQuader(cuboid2, fFocus, Color());
-	/*float a_o[4] = {0,0,0,1};
-	float a_x[4] = {100,0,0,1};
-	float a_y[4] = {0,100,0,1};
-	float a_z[4] = {0,0,100,1};
-	CMat4f transform_mat = getTransform(viewOrigin, viewDir, viewUp);
-	CVec4f origin = projectZallg(transform_mat, fFocus, CVec4f(a_o));
-	CVec4f axis_x = projectZallg(transform_mat, fFocus, CVec4f(a_x));
-	CVec4f axis_y = projectZallg(transform_mat, fFocus, CVec4f(a_y));
-	CVec4f axis_z = projectZallg(transform_mat, fFocus, CVec4f(a_z));
-	Color green = Color(0,1,0);
-	Color blue = Color(0,0,1);
-	Color yellow = Color(1,1,0);
-	drawProjektedZ(origin, axis_x, green);
-	drawProjektedZ(origin, axis_y, blue);
-	drawProjektedZ(origin, axis_z, yellow);*/
+	drawQuader(cuboid2, fFocus, Color(1,1,1));
 	// In double buffer mode the last
 	// two lines should alsways be
-	glFlush ();
-	glutSwapBuffers (); // swap front and back buffer
-}
-
-// display callback function
-void display2 (void) {
-	glClear (GL_COLOR_BUFFER_BIT);
-
-	// In double buffer mode the last
-	// two lines should always be
 	glFlush ();
 	glutSwapBuffers (); // swap front and back buffer
 }
@@ -561,14 +367,6 @@ void keyboard (unsigned char key, int x, int y) {
 		case 'q':
 		case 'Q':
 			exit (0); // quit program
-			break;
-		case '1':
-			glutDisplayFunc (display1);
-			//glutPostRedisplay ();	// not needed since timer triggers redisplay
-			break;
-		case '2':
-			glutDisplayFunc (display2);
-			//glutPostRedisplay ();	// not needed since timer triggers redisplay
 			break;
 		case 'F':
 			fFocus += 10;
@@ -599,58 +397,42 @@ void keyboard (unsigned char key, int x, int y) {
 			viewOrigin.increment(2, -stride);
 			break;
 		case 'A':
-			if (viewUp.get(0) != 0 || viewUp.get(1) != 1 || viewUp.get(2) != 0) {
-				printf("before: %f %f %f\n", viewUp.get(0), viewUp.get(1), viewUp.get(2));
-				viewUp = rotate_axis(-viewDir, viewUp, degree);
-				printf("after: %f %f %f\n", viewUp.get(0), viewUp.get(1), viewUp.get(2));
-			} else {
-				viewUp = rotz((2*degree*pi)/360) * viewUp;
-			}
-			//
+			viewUp = rotate_axis(-viewDir, angle_rad) * viewUp;
 			break;
 		case 'a':
-			printf("before: %f %f %f\n", viewUp.get(0), viewUp.get(1), viewUp.get(2));
-			viewUp = rotate_axis(-viewDir, viewUp, -degree);
-			printf("after: %f %f %f\n", viewUp.get(0), viewUp.get(1), viewUp.get(2));
-			//viewUp = rotz(-(2*degree*pi)/360) * viewUp;
+			viewUp = rotate_axis(-viewDir, -angle_rad) * viewUp;
 			break;
 		case 'B':
-			viewDir = rotate_axis(viewUp, viewDir, degree);
-			//viewDir = roty((2*degree*pi)/360) * viewDir;
+			viewDir = rotate_axis(viewUp, angle_rad) * viewDir;
 			break;
 		case 'b':
-			viewDir = rotate_axis(viewUp, viewDir, -degree);
-			//viewDir = roty(-(2*degree*pi)/360) * viewDir;
+			viewDir = rotate_axis(viewUp, -angle_rad) * viewDir;
 			break;
 		case 'C':
-			viewUp = rotate_axis(cross(viewUp, -viewDir), viewUp, degree);
-			viewDir = rotate_axis(cross(viewUp, -viewDir), viewDir, degree);
-			//viewDir = rotx((2*degree*pi)/360) * viewDir;
-			//viewUp = rotx((2*degree*pi)/360) * viewUp;
+			viewUp = rotate_axis(viewLeft, angle_rad) * viewUp;
+			viewDir = rotate_axis(viewLeft, angle_rad) * viewDir;
 			break;
 		case 'c':
-			viewUp = rotate_axis(cross(viewUp, -viewDir), viewUp, -degree);
-			viewDir = rotate_axis(cross(viewUp, -viewDir), viewDir, -degree);
-			//viewDir = rotx(-(2*degree*pi)/360) * viewDir;
-			//viewUp = rotx(-(2*degree*pi)/360) * viewUp;
+			viewUp = rotate_axis(viewLeft, -angle_rad) * viewUp;
+			viewDir = rotate_axis(viewLeft, -angle_rad) * viewDir;
 			break;
 		case 'X':
-			viewOrigin = rotx((2*degree*pi)/360) * viewOrigin;
+			viewOrigin = rotx(angle_rad) * viewOrigin;
 			break;
 		case 'x':
-			viewOrigin = rotx(-(2*degree*pi)/360) * viewOrigin;
+			viewOrigin = rotx(-angle_rad) * viewOrigin;
 			break;
 		case 'Y':
-			viewOrigin = roty((2*degree*pi)/360) * viewOrigin;
+			viewOrigin = roty(angle_rad) * viewOrigin;
 			break;
 		case 'y':
-			viewOrigin = roty(-(2*degree*pi)/360) * viewOrigin;
+			viewOrigin = roty(-angle_rad) * viewOrigin;
 			break;
 		case 'Z':
-			viewOrigin = rotz((2*degree*pi)/360) * viewOrigin;
+			viewOrigin = rotz(angle_rad) * viewOrigin;
 			break;
 		case 'z':
-			viewOrigin = rotz(-(2*degree*pi)/360) * viewOrigin;
+			viewOrigin = rotz(-angle_rad) * viewOrigin;
 			break;
 		case 'r': {
 				fFocus = 1000;
@@ -660,12 +442,15 @@ void keyboard (unsigned char key, int x, int y) {
 				viewOrigin.setData(o_arr);
 				viewDir.setData(d_arr);
 				viewUp.setData(u_arr);
+				viewLeft = cross(viewUp, -viewDir);
 			break;
 		}
 		default:
 			// do nothing ...
 			break;
 	};
+	viewLeft = cross(viewUp, -viewDir);
+	base_change_mat = baseChange();
 	glutPostRedisplay ();
 }
 
@@ -687,9 +472,8 @@ int main (int argc, char **argv)
 	initGL ();	// init the GL (i.e. view settings, ...)
 
 	// assign callbacks
-	// glutTimerFunc (10, timer, 0);
 	glutKeyboardFunc (keyboard);
-	glutDisplayFunc (display1);
+	glutDisplayFunc (display);
 	glutReshapeFunc(resize);
 	// you might want to add a resize function analog to
 	// �bung1 using code similar to the initGL function ...
