@@ -32,10 +32,10 @@ CVec4f viewLeft;
 #define CLIPLOWER 4  //         0100
 #define CLIPUPPER 8  //         1000
 
-float xMin = -g_iWidth / 2;
+float xMin = (-g_iWidth / 2);
 float xMax = (g_iWidth / 2) - 1;
-float yMin = -g_iHeight / 2;
-float yMax = (g_iHeight / 2) - 1;
+float yMin = (-g_iHeight / 2);
+float yMax = ((g_iHeight / 2)) - 1;
 
 CMat4f base_change_mat;
 float fFocus;
@@ -45,95 +45,85 @@ float angle_deg;
 float angle_rad;
 
 void clipLine(Point &p1, Point &p2) {
-	int delta_X = p2.x - p1.x;
-	int delta_Y = p2.y - p1.y;
-	if (!(p2.x == p1.x || p2.y == p1.y)) {
-	printf("a\n");
-	// Clipping
-	int K1=0,K2=0;
-	if(p1.y < yMin) K1 =CLIPLOWER;
-	if(p1.y > yMax) K1 =CLIPUPPER;
-	if(p1.x < xMin) K1|=CLIPLEFT;
-	if(p1.x > xMax) K1|=CLIPRIGHT;
+	float delta_X = p2.x - p1.x;
+	float delta_Y = p2.y - p1.y;
+	if (!(delta_X == 0 || delta_Y == 0)) {
 
-	if(p2.y < yMin) K2 =CLIPLOWER;
-	if(p2.y > yMax) K2 =CLIPUPPER;
-	if(p2.x < xMin) K2|=CLIPLEFT;
-	if(p2.x > xMax) K2|=CLIPRIGHT;
+		// Clipping
+		int K1=0,K2=0;
+		if(p1.y < yMin) K1 =CLIPLOWER;
+		if(p1.y > yMax) K1 =CLIPUPPER;
+		if(p1.x < xMin) K1|=CLIPLEFT;
+		if(p1.x > xMax) K1|=CLIPRIGHT;
 
-	int break_while = 0;
+		if(p2.y < yMin) K2 =CLIPLOWER;
+		if(p2.y > yMax) K2 =CLIPUPPER;
+		if(p2.x < xMin) K2|=CLIPLEFT;
+		if(p2.x > xMax) K2|=CLIPRIGHT;
 
-	while ( K1 || K2 )
-	{	
-		printf("%d\n", break_while);
-		printf("%d, %d\n", delta_X, delta_Y);
-		if (break_while > 5) {
-			break;
-		}
-		if( K1 & K2 ) break;											// muss nix gezeichnet werden
-		
-		if ( K1 ) {
-			if( K1 & CLIPLEFT ) {
-				p1.y += (xMin - p1.x) * delta_Y / delta_X;
-				p1.x = xMin;
+
+		while ( K1 || K2 )
+		{	
+			if( K1 & K2 ) {
+				break;											// muss nix gezeichnet werden
 			}
-			else if ( K1 & CLIPRIGHT ) {
-				p1.y += (xMax - p1.x) * delta_Y / delta_X;
-				p1.x = xMax;
-			}
+			if ( K1 ) {
+				if( K1 & CLIPLEFT ) {
+					p1.y += (xMin - p1.x) * (delta_Y / delta_X);
+					p1.x = xMin;
+				}
+				else if ( K1 & CLIPRIGHT ) {
+					p1.y += (xMax - p1.x) * (delta_Y / delta_X);
+					p1.x = xMax;
+				}
 
-			if( K1 & CLIPLOWER ) {
-				p1.x += (yMin-p1.y) * delta_X / delta_Y;
-				p1.y = yMin;
-			}
-			else if( K1 & CLIPUPPER ) {
-				p1.x += (yMax - p1.y) * delta_X / delta_Y;
-				p1.y = yMax;
-			}
+				if( K1 & CLIPLOWER ) {
+					p1.x += (yMin-p1.y) * (delta_X / delta_Y);
+					p1.y = yMin;
+				}
+				else if( K1 & CLIPUPPER ) {
+					p1.x += (yMax - p1.y) * (delta_X / delta_Y);
+					p1.y = yMax;
+				}
 
-			K1 = 0;
-
-			if(p1.y < yMin) K1 =CLIPLOWER;
-			if(p1.y > yMax) K1 =CLIPUPPER;
-			if(p1.x < xMin) K1|=CLIPLEFT;
-			if(p1.x > xMax) K1|=CLIPRIGHT;
-		}
-		
-		if ( K2 ) {
-			if( K2 & CLIPLEFT ) {
-				p2.y += (xMin - p2.x) * delta_Y / delta_X;
-				p2.x = xMin;
-			} else if( K2 & CLIPRIGHT ) {
-				 p2.y += (xMax - p2.x) * delta_Y / delta_X;
-				 p2.x = xMax; 
+				K1 = 0;
+				if (p1.y < yMin) K1 =CLIPLOWER;
+				if (p1.y > yMax) K1 =CLIPUPPER;
+				if (p1.x < xMin) K1|=CLIPLEFT;
+				if (p1.x > xMax) K1|=CLIPRIGHT;
 			}
 			
-			if( K2 & CLIPLOWER ) {
-				p2.x += (yMin - p2.y) * delta_X / delta_Y;
-				p2.y = yMin;
-			} else if( K2 & CLIPUPPER ) {
-				p2.x += (yMax - p2.y) * delta_X / delta_Y;
-				p2.y = yMax;
+			if ( K2 ) {
+				if( K2 & CLIPLEFT ) {
+					p2.y += (xMin - p2.x) * (delta_Y / delta_X);
+					p2.x = xMin;
+				} else if( K2 & CLIPRIGHT ) {
+					p2.y += (xMax - p2.x) * (delta_Y / delta_X);
+					p2.x = xMax; 
+				}
+				
+				if( K2 & CLIPLOWER ) {
+					p2.x += (yMin - p2.y) * (delta_X / delta_Y);
+					p2.y = yMin;
+				} else if( K2 & CLIPUPPER ) {
+					p2.x += (yMax - p2.y) * (delta_X / delta_Y);
+					p2.y = yMax;
+				}
+				K2 = 0;
+				if (p2.y < yMin) K2 =CLIPLOWER;
+				if (p2.y > yMax) K2 =CLIPUPPER;
+				if (p2.x < xMin) K2|=CLIPLEFT;
+				if (p2.x > xMax) K2|=CLIPRIGHT;
 			}
-			K2 = 0;
-
-			if( p2.y < yMin ) K2 =CLIPLOWER;
-			if( p2.y > yMax ) K2 =CLIPUPPER;
-			if( p2.x < xMin ) K2|=CLIPLEFT;
-			if( p2.x > xMax ) K2|=CLIPRIGHT;
 		}
-		break_while++;
-	}
 	}
 }
 
 void bhamLine(Point p1, Point p2, Color c)
-{	
+{
+	clipLine(p1, p2);
 	int delta_X = p2.x - p1.x;
 	int delta_Y = p2.y - p1.y;
-	printf("%d, %d, %d, %d\n", p1.x, p1.y, p2.x, p2.x);
-	//clipLine(p1, p2);
-	printf("%d, %d, %d, %d\n", p1.x, p1.y, p2.x, p2.x);
 	glBegin(GL_POINTS);
 		glColor3f(c.r,c.g,c.b);
 		glVertex2i(p1.x, p1.y);
@@ -355,7 +345,7 @@ void initGL () {
 void display (void) {
 	glClear (GL_COLOR_BUFFER_BIT);
 	drawQuader(cuboid1, fFocus, Color(1,0,0));
-	drawQuader(cuboid2, fFocus, Color(1,1,1));
+	//drawQuader(cuboid2, fFocus, Color(1,1,1));
 	// In double buffer mode the last
 	// two lines should alsways be
 	glFlush ();
@@ -368,6 +358,12 @@ void keyboard (unsigned char key, int x, int y) {
 		case 'Q':
 			exit (0); // quit program
 			break;
+		case 'i':
+			printf("ViewOrigin: %.2f, %.2f, %.2f\n", viewOrigin(0), viewOrigin(1), viewOrigin(2));
+			printf("ViewLeft: %.2f, %.2f, %.2f\n", viewLeft(0), viewLeft(1), viewLeft(2));
+			printf("ViewUp: %.2f, %.2f, %.2f\n", viewUp(0), viewUp(1), viewUp(2));
+			printf("-ViewDir: %.2f, %.2f, %.2f\n", -viewDir(0), -viewDir(1), -viewDir(2));
+			printf("Focus: %.2f\n", fFocus);
 		case 'F':
 			fFocus += 10;
 			break;
