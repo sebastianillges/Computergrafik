@@ -139,12 +139,11 @@ CMat4f transpose(CMat4f mat) {
 #define CLIPUPPER 8  //         1000
 */
 
-void bhamLine(Point p1, Point p2, Color c)
-{
-
+void clipLine(Point &p1, Point &p2) {
 	int delta_X = p2.x - p1.x;
 	int delta_Y = p2.y - p1.y;
-
+	if (!(p2.x == p1.x || p2.y == p1.y)) {
+	printf("a\n");
 	// Clipping
 	int K1=0,K2=0;
 	if(p1.y < yMin) K1 =CLIPLOWER;
@@ -157,13 +156,20 @@ void bhamLine(Point p1, Point p2, Color c)
 	if(p2.x < xMin) K2|=CLIPLEFT;
 	if(p2.x > xMax) K2|=CLIPRIGHT;
 
+	int break_while = 0;
+
 	while ( K1 || K2 )
-	{
+	{	
+		printf("%d\n", break_while);
+		printf("%d, %d\n", delta_X, delta_Y);
+		if (break_while > 5) {
+			break;
+		}
 		if( K1 & K2 ) break;											// muss nix gezeichnet werden
 		
 		if ( K1 ) {
 			if( K1 & CLIPLEFT ) {
-				p1.y += (xMin - p1.x) * delta_Y/delta_X;
+				p1.y += (xMin - p1.x) * delta_Y / delta_X;
 				p1.x = xMin;
 			}
 			else if ( K1 & CLIPRIGHT ) {
@@ -172,11 +178,11 @@ void bhamLine(Point p1, Point p2, Color c)
 			}
 
 			if( K1 & CLIPLOWER ) {
-				p1.x += (yMin-p1.y) * delta_X/delta_Y;
+				p1.x += (yMin-p1.y) * delta_X / delta_Y;
 				p1.y = yMin;
 			}
 			else if( K1 & CLIPUPPER ) {
-				p1.x += (yMax - p1.y) * delta_X/delta_Y;
+				p1.x += (yMax - p1.y) * delta_X / delta_Y;
 				p1.y = yMax;
 			}
 
@@ -188,7 +194,7 @@ void bhamLine(Point p1, Point p2, Color c)
 			if(p1.x > xMax) K1|=CLIPRIGHT;
 		}
 		
-		if( K2 ) {
+		if ( K2 ) {
 			if( K2 & CLIPLEFT ) {
 				p2.y += (xMin - p2.x) * delta_Y / delta_X;
 				p2.x = xMin;
@@ -211,8 +217,18 @@ void bhamLine(Point p1, Point p2, Color c)
 			if( p2.x < xMin ) K2|=CLIPLEFT;
 			if( p2.x > xMax ) K2|=CLIPRIGHT;
 		}
+		break_while++;
 	}
+	}
+}
 
+void bhamLine(Point p1, Point p2, Color c)
+{	
+	int delta_X = p2.x - p1.x;
+	int delta_Y = p2.y - p1.y;
+	printf("%d, %d, %d, %d\n", p1.x, p1.y, p2.x, p2.x);
+	//clipLine(p1, p2);
+	printf("%d, %d, %d, %d\n", p1.x, p1.y, p2.x, p2.x);
 	glBegin(GL_POINTS);
 		glColor3f(c.r,c.g,c.b);
 		glVertex2i(p1.x, p1.y);
@@ -291,6 +307,9 @@ CVec4f projectZ(float fFocus, CVec4f pView) {
 	float x = pView.get(0);
 	float y = pView.get(1);
 	float z = pView.get(2);
+	if ((fFocus - z) == 0) {
+		printf("null :D");
+	} 
 	float k = fFocus / (fFocus - z);
 
 	float xn = x * k;
@@ -471,7 +490,7 @@ void timer (int value) {
 void display1 (void) {
 	glClear (GL_COLOR_BUFFER_BIT);
 	drawQuader(cuboid1, fFocus, Color(1,0,0));
-	float a_o[4] = {0,0,0,1};
+	/*float a_o[4] = {0,0,0,1};
 	float a_x[4] = {100,0,0,1};
 	float a_y[4] = {0,100,0,1};
 	float a_z[4] = {0,0,100,1};
@@ -485,7 +504,7 @@ void display1 (void) {
 	Color yellow = Color(1,1,0);
 	drawProjektedZ(origin, axis_x, green);
 	drawProjektedZ(origin, axis_y, blue);
-	drawProjektedZ(origin, axis_z, yellow);
+	drawProjektedZ(origin, axis_z, yellow);*/
 	// In double buffer mode the last
 	// two lines should alsways be
 	glFlush ();
@@ -503,6 +522,7 @@ void display2 (void) {
 }
 
 void keyboard (unsigned char key, int x, int y) {
+	glutPostRedisplay ();
 	switch (key) {
 		case 'q':
 		case 'Q':
@@ -616,7 +636,7 @@ int main (int argc, char **argv)
 	initGL ();	// init the GL (i.e. view settings, ...)
 
 	// assign callbacks
-	glutTimerFunc (10, timer, 0);
+	// glutTimerFunc (10, timer, 0);
 	glutKeyboardFunc (keyboard);
 	glutDisplayFunc (display1);
 	glutReshapeFunc(resize);
