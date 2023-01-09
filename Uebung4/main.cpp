@@ -31,6 +31,7 @@ CVec3f zAxis;
 CVec3f lightPos;
 CVec3f lightColor;
 float lightIntensity;
+float ambientIntensity;
 
 float angle_deg;
 float angle_rad;
@@ -68,7 +69,7 @@ CMat3f rotate_axis(CVec3f rot_axis, float angle) {
 	return CMat3f(arr);
 }
 
-CVec3f intersect(CVec3f EyePos, CVec3f ViewDir)
+CVec3f intersectSphere(CVec3f EyePos, CVec3f ViewDir)
 {
     // t = (-(e - m) +/- sqrt((e - m)^2 - v^2 * r^2)) / v^2
     // Meine
@@ -158,13 +159,9 @@ Color phong(CVec3f HitPos, CVec3f EyePos)
 
     CVec3f R = rotate_axis(N, M_PI) * L;
     
-    float Ia = 0.1;                                                 // ambient
+    float Ia = ambientIntensity;                                    // ambient
     float Id = skalarProd(N, L) * lightIntensity;                   // diffuse
     float Is = pow(skalarProd(R, V), shininess) * lightIntensity;   // specular
-    //float total = Ia + Id + Is;
-    //Id = Id / total;
-    //Is = Is / total;
-    //Ia = Ia / total;
 
     CVec3f kd;
     float kd_arr[3] = {sphereColor.r, sphereColor.g, sphereColor.b};
@@ -188,7 +185,7 @@ void drawSphere(CVec3f EyePos, CVec3f ViewDir)
         {
             ViewDir.set(0, i);
             ViewDir.set(1, j);
-            CVec3f interPoint = intersect(EyePos, ViewDir);
+            CVec3f interPoint = intersectSphere(EyePos, ViewDir);
             if (interPoint.get(2) != -1)
             {
                 Point p = project(interPoint);
@@ -197,7 +194,6 @@ void drawSphere(CVec3f EyePos, CVec3f ViewDir)
                     glColor3f(c.r, c.g, c.b);
                     //glColor3f(sphereColor.r, sphereColor.g, sphereColor.b);
                     glVertex2i(p.x, p.y);
-
                     glVertex2i(p.x+1, p.y);
                     glVertex2i(p.x-1, p.y);
                     glVertex2i(p.x, p.y+1);
@@ -208,12 +204,17 @@ void drawSphere(CVec3f EyePos, CVec3f ViewDir)
     }
 }
 
+void drawQuader(CVec3f EyePos, CVec3f viewDir)
+{
+	
+}
+
 // function to initialize our own variables
 void init () {
 	// init timer interval
 	g_iTimerMSecs = 50;
 
-	angle_deg = 2;
+	angle_deg = 5;
 	angle_rad = angle_deg * 2 * 3.14159265359 / 360;
 	stride = 10;
 
@@ -231,14 +232,16 @@ void init () {
     float lPos_arr[3] = {0, 1000, 0};
     float lCol_arr[3] = {1, 1, 1};
     lightPos.setData(lPos_arr);
+	lightPos = rotz(M_PI / 4) * lightPos;
     lightColor.setData(lCol_arr);
     lightIntensity = 1;
+	ambientIntensity = 0.08;
 
     float ichHaseMeinLeben[3] = {0, 0, -200};
 	sphereCenter.setData(ichHaseMeinLeben);
     sphereRadius = 200;
-    sphereColor = Color(0, 0, 1);
-    shininess = 1;
+    sphereColor = Color(1, 1, 1);
+    shininess = 7;
 }
 
 // function to initialize the view to ortho-projection
@@ -285,6 +288,12 @@ void keyboard (unsigned char key, int x, int y) {
         case 'O':
             sphereRadius-=stride;
             break;
+		case '+':
+			(ambientIntensity < 1) && (ambientIntensity+=0.01);
+			break;
+		case '-':
+			(ambientIntensity > 0) && (ambientIntensity-=0.01);
+			break;
         case 'p':
 			(shininess >= 2) && (shininess-=2);
             break;
