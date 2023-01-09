@@ -159,12 +159,12 @@ Color phong(CVec3f HitPos, CVec3f EyePos)
     CVec3f R = rotate_axis(N, M_PI) * L;
     
     float Ia = 0.1;                                                 // ambient
-    float Id = skalarProd(N, L);                                    // diffuse
-    float Is = pow(skalarProd(R, V), shininess);                    // specular
-    float total = Ia + Id + Is;
-    Id = Id / total;
-    Is = Is / total;
-    Ia = Ia / total;
+    float Id = skalarProd(N, L) * lightIntensity;                   // diffuse
+    float Is = pow(skalarProd(R, V), shininess) * lightIntensity;   // specular
+    //float total = Ia + Id + Is;
+    //Id = Id / total;
+    //Is = Is / total;
+    //Ia = Ia / total;
 
     CVec3f kd;
     float kd_arr[3] = {sphereColor.r, sphereColor.g, sphereColor.b};
@@ -173,6 +173,8 @@ Color phong(CVec3f HitPos, CVec3f EyePos)
     CVec3f ka = kd;
 
     CVec3f finalColor = ((kd * max(0.0f, Id)) + (ks * max(0.0f, Is)) * lightIntensity) + ka * Ia;
+	//CVec3f finalColor = ka * Ia + kd * Id + ks * Is;
+	//CVec3f finalColor = ((kd * max(0.0f, Id)) + (ks * max(0.0f, Is)) * lightIntensity);
 
     Color phongColor = Color(finalColor.get(0), finalColor.get(1), finalColor.get(2));
     return phongColor;
@@ -274,6 +276,9 @@ void keyboard (unsigned char key, int x, int y) {
 		case 'Q':
 			exit (0); // quit program
 			break;
+		case 'i':
+			printf("Shininess: %f, Lightintensity: %f, Color(%f, %f, %f)\n", shininess, lightIntensity, sphereColor.r, sphereColor.g, sphereColor.b);
+			break;
         case 'o':
             sphereRadius+=stride;
             break;
@@ -281,34 +286,34 @@ void keyboard (unsigned char key, int x, int y) {
             sphereRadius-=stride;
             break;
         case 'p':
-            shininess-=0.5;
+			(shininess >= 2) && (shininess-=2);
             break;
         case 'P':
-            shininess+=0.5;
+            shininess+=2;
             break;
         case 'l':
-            lightIntensity-=0.05;
+            (lightIntensity > 0) && (lightIntensity-=0.05);
             break;
         case 'L':
             lightIntensity+=0.05;
             break;
         case 'r':
-            sphereColor.r-=0.05;
+            (sphereColor.r > 0) && (sphereColor.r-=0.05);
             break;
         case 'R':
-            sphereColor.r+=0.05;
+            (sphereColor.r < 1) && (sphereColor.r+=0.05);
             break;
         case 'g':
-            sphereColor.g-=0.05;
+            (sphereColor.g > 0) && (sphereColor.g-=0.05);
             break;
         case 'G':
-            sphereColor.g+=0.05;
+            (sphereColor.g < 1) && (sphereColor.g+=0.05);
             break;
         case 'b':
-            sphereColor.b-=0.05;
+            (sphereColor.b > 0) && (sphereColor.b-=0.05);
             break;
         case 'B':
-            sphereColor.b+=0.05;
+            (sphereColor.b < 1) && (sphereColor.b+=0.05);
             break;
         case 'X':
             lightPos = rotate_axis(xAxis, angle_rad) * lightPos;
