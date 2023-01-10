@@ -24,6 +24,7 @@ float bodyShininess;
 CVec3f frontPlaneNormal;
 float frontPlanePosition;
 CVec3f topPlaneNormal;
+float topPlanePosition;
 
 // view system
 CVec3f viewOrigin;
@@ -116,7 +117,7 @@ Color phongSphere(CVec3f HitPos, CVec3f EyePos)
     return phongColor;
 }
 
-Color phongCube(CVec3f HitPos, CVec3f EyePos)
+Color phongCube(CVec3f HitPos, CVec3f EyePos, CVec3f planeNormal)
 {
 //     		--------
 //    	   /|  3  /|
@@ -125,11 +126,6 @@ Color phongCube(CVec3f HitPos, CVec3f EyePos)
 //   	  |/  1  |/
 //   	  /------/
 //			 5
-
-	CVec3f N;
-	float N_arr[3] = {0, 0, 1};
-	N.setData(N_arr);
-    N = N.normalize();
 	
     CVec3f L;
     CVec3f V;
@@ -144,10 +140,10 @@ Color phongCube(CVec3f HitPos, CVec3f EyePos)
     V.setData(V_arr);
     V = V.normalize();
 
-    CVec3f R = rotate_axis(N, M_PI) * L;
+    CVec3f R = rotate_axis(planeNormal, M_PI) * L;
     
     float Ia = ambientIntensity;                                    // ambient
-    float Id = skalarProd(N, L) * lightIntensity;                   // diffuse
+    float Id = skalarProd(planeNormal, L) * lightIntensity;                   // diffuse
     float Is = pow(skalarProd(R,V), bodyShininess) * lightIntensity;// specular
 
     CVec3f kd;
@@ -258,17 +254,39 @@ void drawSphere(CVec3f EyePos, CVec3f ViewDir)
 
 void drawCube(CVec3f EyePos, CVec3f ViewDir)
 {
-	for (int i = -bodyRadius; i < bodyRadius; i++)
+	for (int i = bodyCenter.get(0) - bodyRadius; i < bodyCenter.get(0) + bodyRadius; i++)
     {
-        for (int j = -bodyRadius; j < bodyRadius; j++)
+        for (int j =  bodyCenter.get(1) - bodyRadius; j <  bodyCenter.get(1) + bodyRadius; j++)
         {
             ViewDir.set(0, i);
             ViewDir.set(1, j);
             CVec3f interPoint;
-			float interPoint_arr[3] = {(float) i, (float) j, frontPlanePosition};
+			float interPoint_arr[3] = {(float) i, (float) j, bodyCenter.get(2) + bodyRadius};
 			interPoint.setData(interPoint_arr);
 			Point p = project(interPoint);
-			Color c = phongCube(interPoint, EyePos);
+			Color c = phongCube(interPoint, EyePos, frontPlaneNormal);
+			glBegin(GL_POINTS);
+				glColor3f(c.r, c.g, c.b);
+				//glColor3f(bodyColor.r, bodyColor.g, bodyColor.b);
+				glVertex2i(p.x, p.y);
+				glVertex2i(p.x+1, p.y);
+				glVertex2i(p.x-1, p.y);
+				glVertex2i(p.x, p.y+1);
+				glVertex2i(p.x, p.y-1);
+			glEnd();
+        }
+    }
+	for (int i = bodyCenter.get(0) - bodyRadius; i < bodyCenter.get(0) + bodyRadius; i++)
+    {
+        for (int j = bodyCenter.get(2) - bodyRadius; j < bodyCenter.get(2) + bodyRadius; j++)
+        {
+            ViewDir.set(0, i);
+            ViewDir.set(2, j);
+            CVec3f interPoint;
+			float interPoint_arr[3] = {(float) i, bodyCenter.get(1) + bodyRadius, (float) j};
+			interPoint.setData(interPoint_arr);
+			Point p = project(interPoint);
+			Color c = phongCube(interPoint, EyePos, topPlaneNormal);
 			glBegin(GL_POINTS);
 				glColor3f(c.r, c.g, c.b);
 				//glColor3f(bodyColor.r, bodyColor.g, bodyColor.b);
@@ -310,7 +328,7 @@ void init () {
     lightIntensity = 1;
 	ambientIntensity = 0.08;
 
-    float ichHaseMeinLeben[3] = {0, 0, -200};
+    float ichHaseMeinLeben[3] = {0, -300, -200};
 	bodyCenter.setData(ichHaseMeinLeben);
     bodyRadius = 200;
     bodyColor = Color(1, 1, 1);
@@ -318,8 +336,9 @@ void init () {
 
 	float frontPlaneNormal_arr[3] = {1, 0, 0};
 	frontPlanePosition = bodyCenter.get(2) + bodyRadius;
-	float frontPlaneNormal_arr[3] = {0, 1, 0};
-	topPlaneNormal.setData(frontPlaneNormal_arr);
+	float topPlaneNormal_arr[3] = {0, 1, 0};
+	topPlaneNormal.setData(topPlaneNormal_arr);
+	topPlanePosition = bodyCenter.get(1) + bodyRadius;
 }
 
 // function to initialize the view to ortho-projection
@@ -430,6 +449,18 @@ void keyboard (unsigned char key, int x, int y) {
 			break;
 		case 'z':
 			lightPos = rotate_axis(zAxis, -angle_rad) * lightPos;
+			break;
+		case 'u':
+			bodyCenter.set(1, bodyCenter.get(1) + 10);
+			break;
+		case 'h':
+			bodyCenter.set(0, bodyCenter.get(0) - 10);
+			break;
+		case 'j':
+			bodyCenter.set(1, bodyCenter.get(1) - 10);
+			break;
+		case 'k':
+			bodyCenter.set(0, bodyCenter.get(0) + 10);
 			break;
 		case '1':
 			glutDisplayFunc (display1);
