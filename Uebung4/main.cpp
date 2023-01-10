@@ -15,10 +15,15 @@ const int g_iHeight = 900;
 int g_iTimerMSecs;
 
 // sphere data
-CVec3f sphereCenter;
-float sphereRadius;
-Color sphereColor;
-float shininess;
+CVec3f bodyCenter;
+float bodyRadius;
+Color bodyColor;
+float bodyShininess;
+
+// cube planes
+CVec3f frontPlaneNormal;
+float frontPlanePosition;
+CVec3f topPlaneNormal;
 
 // view system
 CVec3f viewOrigin;
@@ -48,7 +53,8 @@ Point project(CVec3f p) {
 	return pNew;
 }
 
-CMat3f rotate_axis(CVec3f rot_axis, float angle) {
+CMat3f rotate_axis(CVec3f rot_axis, float angle)
+{
 	float x = rot_axis(0);
 	float y = rot_axis(1);
 	float z = rot_axis(2);
@@ -69,81 +75,14 @@ CMat3f rotate_axis(CVec3f rot_axis, float angle) {
 	return CMat3f(arr);
 }
 
-CVec3f intersectSphere(CVec3f EyePos, CVec3f ViewDir)
-{
-    // t = (-(e - m) +/- sqrt((e - m)^2 - v^2 * r^2)) / v^2
-    // Meine
-    /*
-    CVec3f EyeMinusCenter = EyePos - sphereCenter;
-    CVec3f EyeMinusCenterSqr = EyeMinusCenter.square();
-    CVec3f ViewSqrTimesRadiusSqr = ViewDir.square() * pow(sphereRadius, 2);
-    CVec3f underRoot = EyeMinusCenterSqr - ViewSqrTimesRadiusSqr;
-    CVec3f root = underRoot.squareRoot();
-
-    CVec3f t1 = (-(EyeMinusCenter) + root) / ViewDir.square();
-    CVec3f t2 = (-(EyeMinusCenter) - root) / ViewDir.square();
-
-    return (t1.length() < t2.length()) ? (t1) : (t2);
-    */
-
-    // ChatGPT
-
-    double a = ViewDir.get(0) * ViewDir.get(0)
-             + ViewDir.get(1) * ViewDir.get(1)
-             + ViewDir.get(2) * ViewDir.get(2);
-    double b = 2 * (ViewDir.get(0) * (EyePos.get(0) - sphereCenter.get(0))
-                  + ViewDir.get(1) * (EyePos.get(1) - sphereCenter.get(1))
-                  + ViewDir.get(2) * (EyePos.get(2) - sphereCenter.get(2)));
-    double c = (EyePos.get(0) - sphereCenter.get(0)) * (EyePos.get(0) - sphereCenter.get(0))
-             + (EyePos.get(1) - sphereCenter.get(1)) * (EyePos.get(1) - sphereCenter.get(1))
-             + (EyePos.get(2) - sphereCenter.get(2)) * (EyePos.get(2) - sphereCenter.get(2))
-             - sphereRadius * sphereRadius;
-    double discriminant = b * b - 4 * a * c;
-
-    CVec3f intersection;
-
-    if (discriminant < 0)
-    {
-        intersection.set(0, 0);
-        intersection.set(1, 0);
-        intersection.set(2, -1);
-        return intersection;
-        // no real solutions
-    }
-    else if (discriminant == 0)
-    {
-        // one solution
-        float t = -b / (2 * a);
-        intersection.set(0, EyePos.get(0) + t * ViewDir.get(0));
-        intersection.set(1, EyePos.get(1) + t * ViewDir.get(1));
-        intersection.set(2, EyePos.get(2) + t * ViewDir.get(2));
-        return intersection;
-    }
-    else
-    {
-        // two solutions
-        float t1 = (-b + sqrt(discriminant)) / (2 * a);
-        float t2 = (-b - sqrt(discriminant)) / (2 * a);
-
-        (t1 < t2) || (t1 = t2);
-
-        intersection.set(0, EyePos.get(0) + t1 * ViewDir.get(0));
-        intersection.set(1, EyePos.get(1) + t1 * ViewDir.get(1));
-        intersection.set(2, EyePos.get(2) + t1 * ViewDir.get(2));
-        return intersection;
-    }
-}
-
-//CVec3f* getIntersections(CVec3f EyePos, CVec3f ViewDir)
-
-Color phong(CVec3f HitPos, CVec3f EyePos)
+Color phongSphere(CVec3f HitPos, CVec3f EyePos)
 {
     CVec3f N;
     CVec3f L;
     CVec3f V;
-    float N_arr[3] = {HitPos.get(0) - sphereCenter.get(0),
-                          HitPos.get(1) - sphereCenter.get(1),
-                          HitPos.get(2) - sphereCenter.get(2)};
+    float N_arr[3] = {HitPos.get(0) - bodyCenter.get(0),
+                          HitPos.get(1) - bodyCenter.get(1),
+                          HitPos.get(2) - bodyCenter.get(2)};
     float L_arr[3] = {lightPos.get(0) - HitPos.get(0),
                       lightPos.get(1) - HitPos.get(1),
                       lightPos.get(2) - HitPos.get(2)};
@@ -161,10 +100,10 @@ Color phong(CVec3f HitPos, CVec3f EyePos)
     
     float Ia = ambientIntensity;                                    // ambient
     float Id = skalarProd(N, L) * lightIntensity;                   // diffuse
-    float Is = pow(skalarProd(R, V), shininess) * lightIntensity;   // specular
+    float Is = pow(skalarProd(R, V), bodyShininess) * lightIntensity;   // specular
 
     CVec3f kd;
-    float kd_arr[3] = {sphereColor.r, sphereColor.g, sphereColor.b};
+    float kd_arr[3] = {bodyColor.r, bodyColor.g, bodyColor.b};
     kd.setData(kd_arr);
     CVec3f ks = lightColor;
     CVec3f ka = kd;
@@ -175,6 +114,119 @@ Color phong(CVec3f HitPos, CVec3f EyePos)
 
     Color phongColor = Color(finalColor.get(0), finalColor.get(1), finalColor.get(2));
     return phongColor;
+}
+
+Color phongCube(CVec3f HitPos, CVec3f EyePos)
+{
+//     		--------
+//    	   /|  3  /|
+//   	  /------/ |
+//   	4 | |----|-| 2
+//   	  |/  1  |/
+//   	  /------/
+//			 5
+
+	CVec3f N;
+	float N_arr[3] = {0, 0, 1};
+	N.setData(N_arr);
+    N = N.normalize();
+	
+    CVec3f L;
+    CVec3f V;
+    float L_arr[3] = {lightPos.get(0) - HitPos.get(0),
+                      lightPos.get(1) - HitPos.get(1),
+                      lightPos.get(2) - HitPos.get(2)};
+    float V_arr[3] = {EyePos.get(0) - HitPos.get(0),
+                      EyePos.get(1) - HitPos.get(1),
+                      EyePos.get(2) - HitPos.get(2)};
+    L.setData(L_arr);
+    L = L.normalize();
+    V.setData(V_arr);
+    V = V.normalize();
+
+    CVec3f R = rotate_axis(N, M_PI) * L;
+    
+    float Ia = ambientIntensity;                                    // ambient
+    float Id = skalarProd(N, L) * lightIntensity;                   // diffuse
+    float Is = pow(skalarProd(R,V), bodyShininess) * lightIntensity;// specular
+
+    CVec3f kd;
+    float kd_arr[3] = {bodyColor.r, bodyColor.g, bodyColor.b};
+    kd.setData(kd_arr);
+    CVec3f ks = lightColor;
+    CVec3f ka = kd;
+
+    CVec3f finalColor = ((kd * max(0.0f, Id)) + (ks * max(0.0f, Is)) * lightIntensity) + ka * Ia;
+	//CVec3f finalColor = ka * Ia + kd * Id + ks * Is;
+	//CVec3f finalColor = ((kd * max(0.0f, Id)) + (ks * max(0.0f, Is)) * lightIntensity);
+
+    Color phongColor = Color(finalColor.get(0), finalColor.get(1), finalColor.get(2));
+    return phongColor;
+}
+
+CVec3f intersectSphere(CVec3f EyePos, CVec3f ViewDir)
+{
+    // t = (-(e - m) +/- sqrt((e - m)^2 - v^2 * r^2)) / v^2
+    // Meine
+    /*
+    CVec3f EyeMinusCenter = EyePos - bodyCenter;
+    CVec3f EyeMinusCenterSqr = EyeMinusCenter.square();
+    CVec3f ViewSqrTimesRadiusSqr = ViewDir.square() * pow(bodyRadius, 2);
+    CVec3f underRoot = EyeMinusCenterSqr - ViewSqrTimesRadiusSqr;
+    CVec3f root = underRoot.squareRoot();
+
+    CVec3f t1 = (-(EyeMinusCenter) + root) / ViewDir.square();
+    CVec3f t2 = (-(EyeMinusCenter) - root) / ViewDir.square();
+
+    return (t1.length() < t2.length()) ? (t1) : (t2);
+    */
+
+    // ChatGPT
+
+    double a = ViewDir.get(0) * ViewDir.get(0)
+             + ViewDir.get(1) * ViewDir.get(1)
+             + ViewDir.get(2) * ViewDir.get(2);
+    double b = 2 * (ViewDir.get(0) * (EyePos.get(0) - bodyCenter.get(0))
+                  + ViewDir.get(1) * (EyePos.get(1) - bodyCenter.get(1))
+                  + ViewDir.get(2) * (EyePos.get(2) - bodyCenter.get(2)));
+    double c = (EyePos.get(0) - bodyCenter.get(0)) * (EyePos.get(0) - bodyCenter.get(0))
+             + (EyePos.get(1) - bodyCenter.get(1)) * (EyePos.get(1) - bodyCenter.get(1))
+             + (EyePos.get(2) - bodyCenter.get(2)) * (EyePos.get(2) - bodyCenter.get(2))
+             - bodyRadius * bodyRadius;
+    double d = b * b - 4 * a * c;
+
+    CVec3f intersection;
+
+    if (d < 0)
+    {
+        intersection.set(0, 0);
+        intersection.set(1, 0);
+        intersection.set(2, -1);
+        return intersection;
+        // no real solutions
+    }
+    else if (d == 0)
+    {
+        // one solution
+        float t = -b / (2 * a);
+        intersection.set(0, EyePos.get(0) + t * ViewDir.get(0));
+        intersection.set(1, EyePos.get(1) + t * ViewDir.get(1));
+        intersection.set(2, EyePos.get(2) + t * ViewDir.get(2));
+        return intersection;
+    }
+    else
+    {
+        // two solutions
+        float t1 = (-b + sqrt(d)) / (2 * a);
+        float t2 = (-b - sqrt(d)) / (2 * a);
+
+        (t1 < t2) || (t1 = t2);
+
+        intersection.set(0, EyePos.get(0) + t1 * ViewDir.get(0));
+        intersection.set(1, EyePos.get(1) + t1 * ViewDir.get(1));
+        intersection.set(2, EyePos.get(2) + t1 * ViewDir.get(2));
+        return intersection;
+    }
 }
 
 void drawSphere(CVec3f EyePos, CVec3f ViewDir)
@@ -189,10 +241,10 @@ void drawSphere(CVec3f EyePos, CVec3f ViewDir)
             if (interPoint.get(2) != -1)
             {
                 Point p = project(interPoint);
-                Color c = phong(interPoint, EyePos);
+                Color c = phongSphere(interPoint, EyePos);
                 glBegin(GL_POINTS);
                     glColor3f(c.r, c.g, c.b);
-                    //glColor3f(sphereColor.r, sphereColor.g, sphereColor.b);
+                    //glColor3f(bodyColor.r, bodyColor.g, bodyColor.b);
                     glVertex2i(p.x, p.y);
                     glVertex2i(p.x+1, p.y);
                     glVertex2i(p.x-1, p.y);
@@ -204,9 +256,30 @@ void drawSphere(CVec3f EyePos, CVec3f ViewDir)
     }
 }
 
-void drawQuader(CVec3f EyePos, CVec3f viewDir)
+void drawCube(CVec3f EyePos, CVec3f ViewDir)
 {
-	
+	for (int i = -bodyRadius; i < bodyRadius; i++)
+    {
+        for (int j = -bodyRadius; j < bodyRadius; j++)
+        {
+            ViewDir.set(0, i);
+            ViewDir.set(1, j);
+            CVec3f interPoint;
+			float interPoint_arr[3] = {(float) i, (float) j, frontPlanePosition};
+			interPoint.setData(interPoint_arr);
+			Point p = project(interPoint);
+			Color c = phongCube(interPoint, EyePos);
+			glBegin(GL_POINTS);
+				glColor3f(c.r, c.g, c.b);
+				//glColor3f(bodyColor.r, bodyColor.g, bodyColor.b);
+				glVertex2i(p.x, p.y);
+				glVertex2i(p.x+1, p.y);
+				glVertex2i(p.x-1, p.y);
+				glVertex2i(p.x, p.y+1);
+				glVertex2i(p.x, p.y-1);
+			glEnd();
+        }
+    }
 }
 
 // function to initialize our own variables
@@ -238,10 +311,15 @@ void init () {
 	ambientIntensity = 0.08;
 
     float ichHaseMeinLeben[3] = {0, 0, -200};
-	sphereCenter.setData(ichHaseMeinLeben);
-    sphereRadius = 200;
-    sphereColor = Color(1, 1, 1);
-    shininess = 7;
+	bodyCenter.setData(ichHaseMeinLeben);
+    bodyRadius = 200;
+    bodyColor = Color(1, 1, 1);
+    bodyShininess = 7;
+
+	float frontPlaneNormal_arr[3] = {1, 0, 0};
+	frontPlanePosition = bodyCenter.get(2) + bodyRadius;
+	float frontPlaneNormal_arr[3] = {0, 1, 0};
+	topPlaneNormal.setData(frontPlaneNormal_arr);
 }
 
 // function to initialize the view to ortho-projection
@@ -261,11 +339,21 @@ void initGL () {
 }
 
 // display callback function
-void display (void) {
+void display1 (void) {
 	glClear (GL_COLOR_BUFFER_BIT);
 
     drawSphere(viewOrigin, viewDir);
 
+	// In double buffer mode the last
+	// two lines shouId alsways be
+	glFlush ();
+	glutSwapBuffers (); // swap front and back buffer
+}
+
+void display2 (void) {
+	glClear (GL_COLOR_BUFFER_BIT);
+
+    drawCube(viewOrigin, viewDir);
 
 	// In double buffer mode the last
 	// two lines shouId alsways be
@@ -280,13 +368,13 @@ void keyboard (unsigned char key, int x, int y) {
 			exit (0); // quit program
 			break;
 		case 'i':
-			printf("Shininess: %f, Lightintensity: %f, Color(%f, %f, %f)\n", shininess, lightIntensity, sphereColor.r, sphereColor.g, sphereColor.b);
+			printf("Shininess: %f, Lightintensity: %f, Color(%f, %f, %f)\n", bodyShininess, lightIntensity, bodyColor.r, bodyColor.g, bodyColor.b);
 			break;
         case 'o':
-            sphereRadius+=stride;
+            bodyRadius+=stride;
             break;
         case 'O':
-            sphereRadius-=stride;
+            bodyRadius-=stride;
             break;
 		case '+':
 			(ambientIntensity < 1) && (ambientIntensity+=0.01);
@@ -295,10 +383,11 @@ void keyboard (unsigned char key, int x, int y) {
 			(ambientIntensity > 0) && (ambientIntensity-=0.01);
 			break;
         case 'p':
-			(shininess >= 2) && (shininess-=2);
+			(bodyShininess >= 2) && (bodyShininess-=2);
+			(bodyShininess >= 2) && (bodyShininess-=2);
             break;
         case 'P':
-            shininess+=2;
+            bodyShininess+=2;
             break;
         case 'l':
             (lightIntensity > 0) && (lightIntensity-=0.05);
@@ -307,22 +396,22 @@ void keyboard (unsigned char key, int x, int y) {
             lightIntensity+=0.05;
             break;
         case 'r':
-            (sphereColor.r > 0) && (sphereColor.r-=0.05);
+            (bodyColor.r > 0) && (bodyColor.r-=0.05);
             break;
         case 'R':
-            (sphereColor.r < 1) && (sphereColor.r+=0.05);
+            (bodyColor.r < 1) && (bodyColor.r+=0.05);
             break;
         case 'g':
-            (sphereColor.g > 0) && (sphereColor.g-=0.05);
+            (bodyColor.g > 0) && (bodyColor.g-=0.05);
             break;
         case 'G':
-            (sphereColor.g < 1) && (sphereColor.g+=0.05);
+            (bodyColor.g < 1) && (bodyColor.g+=0.05);
             break;
         case 'b':
-            (sphereColor.b > 0) && (sphereColor.b-=0.05);
+            (bodyColor.b > 0) && (bodyColor.b-=0.05);
             break;
         case 'B':
-            (sphereColor.b < 1) && (sphereColor.b+=0.05);
+            (bodyColor.b < 1) && (bodyColor.b+=0.05);
             break;
         case 'X':
             lightPos = rotate_axis(xAxis, angle_rad) * lightPos;
@@ -341,7 +430,15 @@ void keyboard (unsigned char key, int x, int y) {
 			break;
 		case 'z':
 			lightPos = rotate_axis(zAxis, -angle_rad) * lightPos;
-			break; 
+			break;
+		case '1':
+			glutDisplayFunc (display1);
+			//glutPostRedisplay ();	// not needed since timer triggers redisplay
+			break;
+		case '2':
+			glutDisplayFunc (display2);
+			//glutPostRedisplay ();	// not needed since timer triggers redisplay
+			break;
         default:
 			// do nothing ...
 			break;
@@ -367,7 +464,7 @@ int main (int argc, char **argv)
 
 	// assign callbacks
 	glutKeyboardFunc (keyboard);
-	glutDisplayFunc (display);
+	glutDisplayFunc (display1);
 	glutReshapeFunc(resize);
 	// you might want to add a resize function analog to
 	// �bung1 using code similar to the initGL function ...
