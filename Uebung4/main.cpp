@@ -98,32 +98,29 @@ CVec3f intersectSphere(CVec3f EyePos, CVec3f ViewDir)
              + (EyePos.get(1) - sphereCenter.get(1)) * (EyePos.get(1) - sphereCenter.get(1))
              + (EyePos.get(2) - sphereCenter.get(2)) * (EyePos.get(2) - sphereCenter.get(2))
              - sphereRadius * sphereRadius;
-    double discriminant = b * b - 4 * a * c;
+    double d = b * b - 4 * a * c;
 
     CVec3f intersection;
 
-    if (discriminant < 0)
+    if (d < 0)                                                      // kein Schnittpunkt
     {
         intersection.set(0, 0);
         intersection.set(1, 0);
         intersection.set(2, -1);
         return intersection;
-        // no real solutions
     }
-    else if (discriminant == 0)
+    else if (d == 0)                                                // ein Schnittpunkt
     {
-        // one solution
         float t = -b / (2 * a);
         intersection.set(0, EyePos.get(0) + t * ViewDir.get(0));
         intersection.set(1, EyePos.get(1) + t * ViewDir.get(1));
         intersection.set(2, EyePos.get(2) + t * ViewDir.get(2));
         return intersection;
     }
-    else
+    else                                                            // zwei Schnittpunkte
     {
-        // two solutions
-        float t1 = (-b + sqrt(discriminant)) / (2 * a);
-        float t2 = (-b - sqrt(discriminant)) / (2 * a);
+        float t1 = (-b + sqrt(d)) / (2 * a);
+        float t2 = (-b - sqrt(d)) / (2 * a);
 
         (t1 < t2) || (t1 = t2);
 
@@ -133,8 +130,6 @@ CVec3f intersectSphere(CVec3f EyePos, CVec3f ViewDir)
         return intersection;
     }
 }
-
-//CVec3f* getIntersections(CVec3f EyePos, CVec3f ViewDir)
 
 Color phong(CVec3f HitPos, CVec3f EyePos)
 {
@@ -167,11 +162,11 @@ Color phong(CVec3f HitPos, CVec3f EyePos)
     float kd_arr[3] = {sphereColor.r, sphereColor.g, sphereColor.b};
     kd.setData(kd_arr);
     CVec3f ks = lightColor;
-    CVec3f ka = kd;
+    CVec3f ka;
+    float ka_arr[3] = {1, 1, 1};
+    ka.setData(ka_arr);
 
     CVec3f finalColor = ((kd * max(0.0f, Id)) + (ks * max(0.0f, Is)) * lightIntensity) + ka * Ia;
-	//CVec3f finalColor = ka * Ia + kd * Id + ks * Is;
-	//CVec3f finalColor = ((kd * max(0.0f, Id)) + (ks * max(0.0f, Is)) * lightIntensity);
 
     Color phongColor = Color(finalColor.get(0), finalColor.get(1), finalColor.get(2));
     return phongColor;
@@ -230,7 +225,7 @@ void init () {
     zAxis.setData(z_arr);
 
     float lPos_arr[3] = {0, 1000, 0};
-    float lCol_arr[3] = {1, 1, 1};
+    float lCol_arr[3] = {1, 0, 0};
     lightPos.setData(lPos_arr);
 	lightPos = rotz(M_PI / 4) * lightPos;
     lightColor.setData(lCol_arr);
