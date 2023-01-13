@@ -119,12 +119,12 @@ Color phongSphere(CVec3f HitPos, CVec3f EyePos)
 
 Color phongCube(CVec3f HitPos, CVec3f EyePos, CVec3f planeNormal)
 {
-//     		--------
+//     		_______
 //    	   /|  3  /|
-//   	  /------/ |
-//   	4 | |----|-| 2
-//   	  |/  1  |/
-//   	  /------/
+//   	  /______/ |
+//   	4 | |____|_| 2
+//   	  | /  1 | /
+//   	  |/_____|/
 //			 5
 	
     CVec3f L;
@@ -153,8 +153,6 @@ Color phongCube(CVec3f HitPos, CVec3f EyePos, CVec3f planeNormal)
     CVec3f ka = kd;
 
     CVec3f finalColor = ((kd * max(0.0f, Id)) + (ks * max(0.0f, Is)) * lightIntensity) + ka * Ia;
-	//CVec3f finalColor = ka * Ia + kd * Id + ks * Is;
-	//CVec3f finalColor = ((kd * max(0.0f, Id)) + (ks * max(0.0f, Is)) * lightIntensity);
 
     Color phongColor = Color(finalColor.get(0), finalColor.get(1), finalColor.get(2));
     return phongColor;
